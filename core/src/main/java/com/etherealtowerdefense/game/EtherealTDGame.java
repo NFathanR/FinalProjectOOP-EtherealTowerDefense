@@ -38,7 +38,6 @@ public class EtherealTDGame extends ApplicationAdapter {
     private TowerFactory towerFactory;
     private EnemyFactory enemyFactory;
 
-    private EnemyPool enemyPool;
     private ProjectilePool projectilePool;
 
     private final List<Tower> towers = new ArrayList<>();
@@ -70,10 +69,10 @@ public class EtherealTDGame extends ApplicationAdapter {
 
         enemyTexture = new Texture("enemies/dummy.png");
 
+
+
         projectilePool = new ProjectilePool();
 
-        enemyPool = new EnemyPool();
-        enemyPool.configure(enemyTexture, map.getWaypoints());
 
         towerFactory = new TowerFactory(
             projectilePool,
@@ -83,7 +82,7 @@ public class EtherealTDGame extends ApplicationAdapter {
             mortarRoundTexture
         );
 
-        enemyFactory = new EnemyFactory(enemyPool);
+        enemyFactory = new EnemyFactory(enemyTexture, map.getWaypoints());
 
         events = new GameEvents();
 
@@ -111,13 +110,17 @@ public class EtherealTDGame extends ApplicationAdapter {
                     return true;
                 }
 
-                if (keycode == Input.Keys.NUM_3) {
-                    new SpawnEnemyCommand(enemyFactory, enemies).execute();
-
-                    events.publish(
-                        new GameEvent(GameEvent.Type.ENEMY_SPAWNED)
-                    );
-
+                if (keycode >= Input.Keys.NUM_3 && keycode <= Input.Keys.NUM_7) {
+                    EnemyFactory.Type[] types = {
+                        EnemyFactory.Type.BLAST_CRAWLER,
+                        EnemyFactory.Type.ALPECA,
+                        EnemyFactory.Type.FAUN,
+                        EnemyFactory.Type.HOPLITAI,
+                        EnemyFactory.Type.FREDDY_FAZBEAR
+                    };
+                    EnemyFactory.Type type = types[keycode - Input.Keys.NUM_3];
+                    new SpawnEnemyCommand(enemyFactory, enemies, type).execute();
+                    events.publish(new GameEvent(GameEvent.Type.ENEMY_SPAWNED));
                     return true;
                 }
 
@@ -297,6 +300,7 @@ public class EtherealTDGame extends ApplicationAdapter {
 
             for (Enemy e : enemies) {
                 e.update(delta);
+                e.applyTowerEffects(towers);
             }
 
             for (Tower t : towers) {
@@ -304,7 +308,7 @@ public class EtherealTDGame extends ApplicationAdapter {
             }
 
             projectilePool.update(delta, enemies);
-            enemyPool.freeInactive(enemies);
+            removeInactiveEnemies();
         }
 
         drawMap();
@@ -354,7 +358,14 @@ public class EtherealTDGame extends ApplicationAdapter {
 
         batch.end();
 
+        drawEnemyEffects();
         drawPlacementFeedback();
+    }
+
+    private void removeInactiveEnemies() {
+        for (int i = enemies.size() - 1; i >= 0; i--) {
+            if (!enemies.get(i).isActive()) enemies.remove(i);
+        }
     }
 
     private void drawMap() {
@@ -394,6 +405,12 @@ public class EtherealTDGame extends ApplicationAdapter {
             shapes.line(0, y * 40, 1280, y * 40);
         }
 
+        shapes.end();
+    }
+
+    private void drawEnemyEffects() {
+        shapes.begin(ShapeRenderer.ShapeType.Line);
+        for (Enemy enemy : enemies) enemy.drawEffect(shapes);
         shapes.end();
     }
 
