@@ -1,4 +1,3 @@
-
 package com.etherealtowerdefense.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
@@ -19,6 +18,7 @@ import com.etherealtowerdefense.game.map.GameMap;
 import com.etherealtowerdefense.game.observers.*;
 import com.etherealtowerdefense.game.pools.*;
 import com.etherealtowerdefense.game.states.*;
+import com.etherealtowerdefense.game.ui.MainMenu;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,13 +46,16 @@ public class EtherealTDGame extends ApplicationAdapter {
     private GameEvents events;
     private GameState state = new PlayingState();
 
-
     private Tower previewTower;
     private boolean previewEnemy; // this should be unused tbh
     private final Vector2 mouseWorld = new Vector2();
 
     private boolean placementValid;
 
+    // menu
+    private MainMenu menu;
+    private boolean inMenu = true;
+    private InputAdapter gameInput;
 
     @Override
     public void create() {
@@ -69,10 +72,7 @@ public class EtherealTDGame extends ApplicationAdapter {
 
         enemyTexture = new Texture("enemies/dummy.png");
 
-
-
         projectilePool = new ProjectilePool();
-
 
         towerFactory = new TowerFactory(
             projectilePool,
@@ -90,7 +90,7 @@ public class EtherealTDGame extends ApplicationAdapter {
             Gdx.app.log("GameEvent", event.getType().name())
         );
 
-        Gdx.input.setInputProcessor(new InputAdapter() {
+        gameInput = new InputAdapter() {
 
             @Override
             public boolean keyDown(int keycode) {
@@ -204,7 +204,14 @@ public class EtherealTDGame extends ApplicationAdapter {
                 updateMouse(x, y);
                 return true;
             }
+        };
+
+        menu = new MainMenu(() -> {
+            inMenu = false;
+            Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+            Gdx.input.setInputProcessor(gameInput);
         });
+        Gdx.input.setInputProcessor(menu.getStage());
     }
 
     // tower selector
@@ -287,6 +294,11 @@ public class EtherealTDGame extends ApplicationAdapter {
 
     @Override
     public void render() {
+
+        if (inMenu) {
+            menu.render(Gdx.graphics.getDeltaTime());
+            return;
+        }
 
         float delta = Math.min(
             Gdx.graphics.getDeltaTime(),
@@ -469,12 +481,15 @@ public class EtherealTDGame extends ApplicationAdapter {
 
     @Override
     public void resize(int width, int height) {
-        if (width > 0 && height > 0) {
+        if (width > 0 && height > 0 && inMenu) {
+            menu.resize(width, height);
         }
     }
 
     @Override
     public void dispose() {
+
+        menu.dispose();
 
         batch.dispose();
         shapes.dispose();
