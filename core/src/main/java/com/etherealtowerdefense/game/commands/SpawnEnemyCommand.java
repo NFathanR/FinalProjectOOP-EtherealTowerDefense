@@ -1,0 +1,3 @@
+package com.etherealtowerdefense.game.commands;
+import com.etherealtowerdefense.game.entities.Enemy;import com.etherealtowerdefense.game.factories.EnemyFactory;import java.util.List;
+public class SpawnEnemyCommand implements GameCommand {private final EnemyFactory factory;private final List<Enemy> enemies;private final com.badlogic.gdx.math.Vector2 position;public SpawnEnemyCommand(EnemyFactory f,List<Enemy> e){this(f,e,null);}public SpawnEnemyCommand(EnemyFactory f,List<Enemy> e,com.badlogic.gdx.math.Vector2 p){factory=f;enemies=e;position=p==null?null:new com.badlogic.gdx.math.Vector2(p);}public void execute(){Enemy enemy=position==null?factory.create():factory.createAt(position);enemies.add(enemy);}}

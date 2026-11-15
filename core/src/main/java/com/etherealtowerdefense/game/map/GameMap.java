@@ -1,77 +1,57 @@
 package com.etherealtowerdefense.game.map;
 
+import com.badlogic.gdx.math.Vector2;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/** Tile-based visual map with a continuous, collision-tested enemy route. */
 public class GameMap {
-    //ukran mapnya dalam jumal tile 32 x 18
-    private final int width = 32;
-    private final int height = 18;
-    private final int[][] tiles = new int[height][width];
+    public static final int TILE_SIZE = 40;
+    public static final int WIDTH = 32, HEIGHT = 18;
+    public static final float WORLD_WIDTH = WIDTH * TILE_SIZE, WORLD_HEIGHT = HEIGHT * TILE_SIZE;
+    public static final float PATH_HALF_WIDTH = 20f;
+    private final int[][] tiles = new int[HEIGHT][WIDTH];
+    private final List<Vector2> waypoints = new ArrayList<>();
 
-
-    //contruktor jalan pas objek Gamemap dibuat wok
     public GameMap() {
-        createPath();
+        addWaypoint(0, 8); addWaypoint(10, 8); addWaypoint(10, 12);
+        addWaypoint(22, 12); addWaypoint(22, 7); addWaypoint(16, 7);
+        addWaypoint(16, 4); addWaypoint(26, 4); addWaypoint(26, 7);
+        addWaypoint(31, 7);
+        for (int i = 0; i < waypoints.size() - 1; i++) markSegment(waypoints.get(i), waypoints.get(i + 1));
     }
 
-    //bikin method utk buat jalur musuhnya
-    private void createPath() {
-
-        //jalur hori dari kolom 0 - 10
-        for(int x = 0; x <= 10; x++ ) {
-            tiles[8][x] = 1;
-        }
-
-        for (int y = 8; y <= 12; y++) {
-            tiles[y][10] = 1; //jadikan sebagai jalur
-        }
-
-        for( int x= 10; x <= 22; x++) {
-            tiles[12][x] = 1;
-        }
-
-        for (int y = 12; y >= 7; y--) {
-            tiles[y][22] = 1;
-        }
-
-        for (int x = 22; x >= 16; x-- ) {
-            tiles[7][x] = 1;
-        }
-
-        for (int y = 7; y >= 4; y--) {
-            tiles[y][16] = 1;
-        }
-
-        for (int x = 16; x <= 26; x++ ) {
-            tiles[4][x] = 1;
-        }
-
-        for (int y = 4; y <= 7; y++) {
-            tiles[y][26] = 1;
-        }
-
-        for (int x = 26; x < width; x++) {
-            tiles[7][x] = 1;
+    private void addWaypoint(int tileX, int tileY) {
+        waypoints.add(new Vector2(tileX * TILE_SIZE + TILE_SIZE / 2f,
+                WORLD_HEIGHT - (tileY * TILE_SIZE + TILE_SIZE / 2f)));
+    }
+    private void markSegment(Vector2 a, Vector2 b) {
+        int steps = Math.max(1, (int)(a.dst(b) / 5f));
+        for (int i = 0; i <= steps; i++) {
+            float t = i / (float) steps;
+            int x = (int)((a.x + (b.x-a.x)*t) / TILE_SIZE);
+            int y = HEIGHT - 1 - (int)((a.y + (b.y-a.y)*t) / TILE_SIZE);
+            if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) tiles[y][x] = 1;
         }
     }
+    public int getTile(int x, int y) { return x < 0 || y < 0 || x >= WIDTH || y >= HEIGHT ? -1 : tiles[y][x]; }
+    public boolean isBuildable(int x, int y) { return getTile(x,y) == 0; }
+    public List<Vector2> getWaypoints() { return Collections.unmodifiableList(waypoints); }
 
-    //cek bias buat tower kaj???
-    public boolean isBuildable(int x, int y ) {
-        if ( x < 0 || x >= width || y < 0 || y >= height) {
-            return false;
-        }
-        //kalau 0 bisa meletakan tower
-        return tiles[y][x] == 0;
+    /** Circle-vs-capsule test: towers must remain outside the entire road plus its safety margin. */
+    public boolean intersectsPath(float x, float y, float radius) {
+        float required = PATH_HALF_WIDTH + radius;
+        for (int i = 0; i < waypoints.size()-1; i++)
+            if (distanceToSegment(x, y, waypoints.get(i), waypoints.get(i+1)) < required) return true;
+        return false;
     }
-
-
-    //ngas info tile apa
-    public int getTile(int x, int y) {
-
-        //kalau ini maka invalid (di luar map)
-        if (x < 0 || x >= width || y < 0 || y >= height) {
-            return -1;
-        }
-        //memberi info jenis tile nya
-        return tiles[y][x];
+    private float distanceToSegment(float px, float py, Vector2 a, Vector2 b) {
+        float dx=b.x-a.x, dy=b.y-a.y;
+        float len2=dx*dx+dy*dy;
+        float t=len2==0?0:((px-a.x)*dx+(py-a.y)*dy)/len2;
+        t=Math.max(0,Math.min(1,t));
+        float qx=a.x+t*dx, qy=a.y+t*dy;
+        return Vector2.dst(px,py,qx,qy);
     }
-
 }
