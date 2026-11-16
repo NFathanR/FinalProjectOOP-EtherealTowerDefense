@@ -10,7 +10,7 @@ public class MortarStrategy implements AttackStrategy {
     private static final float DAMAGE = 55f;
     private static final float PROJECTILE_TRAVEL_SPEED = 300f;
     private static final float SPLASH_RADIUS = 75f;
-    private static final float DEADZONE_RADIUS = 65f;
+    private static final float DEADZONE_RADIUS = 130f;
 
     private final ProjectilePool pool;
     private final Texture projectile;

@@ -15,11 +15,26 @@ import java.util.List;
 public class EnemyFactory {
     public enum Type { BLAST_CRAWLER, ALPECA, FAUN, HOPLITAI, FREDDY_FAZBEAR }
 
-    private final Texture texture;
+    private final Texture blastCrawlerTexture;
+    private final Texture alpecaTexture;
+    private final Texture faunTexture;
+    private final Texture hoplitaiTexture;
+    private final Texture freddyTexture;
     private final List<Vector2> path;
 
-    public EnemyFactory(Texture texture, List<Vector2> path) {
-        this.texture = texture;
+    public EnemyFactory(
+        Texture blastCrawlerTexture,
+        Texture alpecaTexture,
+        Texture faunTexture,
+        Texture hoplitaiTexture,
+        Texture freddyTexture,
+        List<Vector2> path
+    ) {
+        this.blastCrawlerTexture = blastCrawlerTexture;
+        this.alpecaTexture = alpecaTexture;
+        this.faunTexture = faunTexture;
+        this.hoplitaiTexture = hoplitaiTexture;
+        this.freddyTexture = freddyTexture;
         this.path = path;
     }
 
@@ -27,12 +42,12 @@ public class EnemyFactory {
 
     public Enemy create(Type type) {
         switch (type) {
-            case ALPECA: return new Alpeca(texture, path);
-            case FAUN: return new Faun(texture, path);
-            case HOPLITAI: return new Hoplitai(texture, path);
-            case FREDDY_FAZBEAR: return new FreddyFazbear(texture, path);
+            case ALPECA: return new Alpeca(alpecaTexture, path);
+            case FAUN: return new Faun(faunTexture, path);
+            case HOPLITAI: return new Hoplitai(hoplitaiTexture, path);
+            case FREDDY_FAZBEAR: return new FreddyFazbear(freddyTexture, path);
             case BLAST_CRAWLER:
-            default: return new BlastCrawler(texture, path);
+            default: return new BlastCrawler(blastCrawlerTexture, path);
         }
     }
 
