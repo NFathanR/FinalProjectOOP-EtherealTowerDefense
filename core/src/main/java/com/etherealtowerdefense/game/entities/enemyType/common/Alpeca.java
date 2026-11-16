@@ -6,7 +6,7 @@ import com.etherealtowerdefense.game.entities.Enemy;
 import java.util.List;
 
 public class Alpeca extends Enemy {
-    public static final float BASE_HP = 160f;
+    public static final float BASE_HP = 80f;
     public static final float BASE_SPEED = 110f;
 
     public Alpeca(Texture texture, List<Vector2> path) {
