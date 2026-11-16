@@ -10,6 +10,9 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.GL20; //Bantu transparan(sen)
 
 import com.etherealtowerdefense.game.commands.*;
 import com.etherealtowerdefense.game.entities.*;
@@ -28,6 +31,10 @@ public class EtherealTDGame extends ApplicationAdapter {
     private SpriteBatch batch;
     private ShapeRenderer shapes;
     private GameMap map;
+    // Tinggi area Tower Rack di bawah map (sen)
+    private static final int RACK_HEIGHT = 180;
+    // Font untuk label placeholder tower rack (sen)
+    private BitmapFont rackFont;
 
     private Texture cannonTexture;
     private Texture mortarTexture;
@@ -66,7 +73,21 @@ public class EtherealTDGame extends ApplicationAdapter {
 
         batch = new SpriteBatch();
         shapes = new ShapeRenderer();
+        // Menggeser koordinat gambar agar tersedia ruang Tower Rack (sen)
+        shapes.getProjectionMatrix().setToOrtho2D(0, -RACK_HEIGHT, 1280, 900);
+        // Menyiapkan font putih untuk nama tower (sen)
+        rackFont = new BitmapFont();
+        rackFont.setColor(Color.WHITE);
+        rackFont.getData().setScale(1.5f);
         map = new GameMap();
+
+
+        // Menggeser tampilm game keatas bair muat buat rack towernya (sen)
+        batch.getProjectionMatrix().setToOrtho2D(0, -RACK_HEIGHT, GameMap.WORLD_WIDTH, GameMap.WORLD_HEIGHT + RACK_HEIGHT);
+
+        // Menyamakan koordinat ShapeRenderer dan SpriteBatch (sen)
+        shapes.setProjectionMatrix(batch.getProjectionMatrix());
+
 
         cannonTexture = new Texture("towers/cannon.png");
         mortarTexture = new Texture("towers/mortar.png");
@@ -267,10 +288,16 @@ public class EtherealTDGame extends ApplicationAdapter {
             Gdx.graphics.getHeight() - sy
         );
 
+
+        // Menyesuaikan posisi mouse dengan ukuran area game (Sen)
         mouseWorld.scl(
-            1280f / Gdx.graphics.getWidth(),
-            720f / Gdx.graphics.getHeight()
+            GameMap.WORLD_WIDTH / Gdx.graphics.getWidth(),
+            (GameMap.WORLD_HEIGHT + RACK_HEIGHT) / Gdx.graphics.getHeight()
         );
+
+        // Mengurangi offset agar posisi mouse sesuai dengan map (Sen)
+        mouseWorld.y -= RACK_HEIGHT;
+
 
         updatePlacementValidity();
     }
@@ -344,7 +371,70 @@ public class EtherealTDGame extends ApplicationAdapter {
 
         drawMap();
 
+        // Mengaktifkan blending untuk panel transparan(sen)
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+        // Menggambar background placeholder HP dan Money (sen)
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+
+
+        // Warna cokelat gelap dengan transparansi 75% (sen)
+        shapes.setColor(0.30f, 0.19f, 0.12f, 0.75f);
+
+        // Panel rasio 7:2, menempel di pojok kiri atas (sen)
+        shapes.rect(0, GameMap.WORLD_HEIGHT - 80, 280, 80);
+
+
+        // Mengembalikan rendering ke kondisi normal (sen)
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+        shapes.end();
+
+        // Mengembalikan rendering ke kondisi normal (sen)
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+
+        // Menggambar background tower rack di bawah map (sen)
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0.36f, 0.23f, 0.14f, 1f);
+        shapes.rect(0, -RACK_HEIGHT, GameMap.WORLD_WIDTH, RACK_HEIGHT);
+
+
+        // Menggambar 7 slot Tower Rack (sen)
+        for (int i = 0; i < 7; i++) {
+            int x = 26 + i * 178;
+
+            // Outline cokelat muda (sen)
+            shapes.setColor(0.78f, 0.60f, 0.42f, 1f);
+            shapes.rect(x, -160, 160, 140);
+
+            // Bagian dalam slot berwarna cokelat (sen)
+            shapes.setColor(0.58f, 0.40f, 0.25f, 1f);
+            shapes.rect(x + 4, -156, 152, 132);
+        }
+
+        shapes.end();
         batch.begin();
+
+
+        // Menampilkan placeholder HP dan Money (sen)
+        rackFont.setColor(Color.WHITE);
+
+        rackFont.draw(batch, "Base HP: 100", 25, GameMap.WORLD_HEIGHT - 18);
+        rackFont.draw(batch, "Money: $ 1000", 25, GameMap.WORLD_HEIGHT - 53);
+
+        // Menampilkan placeholder Wave di pojok kanan atas (sen)
+        rackFont.getData().setScale(2f);
+
+        rackFont.draw(batch, "Wave: 1", GameMap.WORLD_WIDTH - 130, GameMap.WORLD_HEIGHT - 25);
+
+        // Mengembalikan ukuran font untuk teks lainnya (Sen)
+        rackFont.getData().setScale(1.5f);
+
+        // Menggambar label untuk setiap slot tower rack (sen)
+        for (int i = 0; i < 7; i++) {
+            int x = 26 + i * 178;
+            rackFont.draw(batch, "Tower " + (i + 1), x + 40, -80);
+        }
 
         //cannon renders first so it goes below towers epicly
         projectilePool.drawCannonProjectiles(batch);
@@ -524,5 +614,8 @@ public class EtherealTDGame extends ApplicationAdapter {
         faunTexture.dispose();
         hoplitaiTexture.dispose();
         freddyTexture.dispose();
+
+        // Membersihkan resource font (sen)
+        rackFont.dispose();
     }
 }
