@@ -6,10 +6,10 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.etherealtowerdefense.game.strategies.AttackStrategy;
 import java.util.List;
+import com.badlogic.gdx.graphics.Color;
 
 public class Tower {
     private final Vector2 position = new Vector2();
-    private final Vector2 muzzlePosition = new Vector2();
     private final Texture texture;
     private final float originX, originY, drawSize, range;
     private float rotation;
@@ -21,6 +21,7 @@ public class Tower {
     private static final float RECOIL_RECOVERY_DURATION = 15f / 60f;
     private static final float RECOIL_DISTANCE = 6f;
     private static final float RECOIL_SCALE = 0.08f;
+    private boolean stunned;
 
     private float recoilElapsed = -1f;
 
@@ -37,6 +38,7 @@ public class Tower {
     public void place(float x, float y) { position.set(x, y); }
 
     public void update(float delta, List<Enemy> enemies) {
+        if (stunned) return;
         cooldown -= delta;
 
         if (recoilElapsed >= 0f) {
@@ -90,6 +92,12 @@ public class Tower {
         float recoilX = -MathUtils.sinDeg(rotation) * RECOIL_DISTANCE * recoil;
         float recoilY = MathUtils.cosDeg(rotation) * RECOIL_DISTANCE * recoil;
 
+        Color previousColor = batch.getColor().cpy();
+
+        if (stunned) {
+            batch.setColor(0.45f, 0.65f, 1f, 1f);
+        }
+
         batch.draw(
             texture,
             position.x + recoilX - ox,
@@ -108,6 +116,7 @@ public class Tower {
             false,
             false
         );
+        batch.setColor(previousColor);
     }
 
     private float getRecoilFactor() {
@@ -132,6 +141,14 @@ public class Tower {
 
     public void triggerRecoil() {
         recoilElapsed = 0f;
+    }
+
+    public void setStunned(boolean stunned) {
+        this.stunned = stunned;
+    }
+
+    public boolean isStunned() {
+        return stunned;
     }
 
     public Vector2 getPosition() { return position; }

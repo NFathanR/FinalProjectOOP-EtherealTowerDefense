@@ -33,7 +33,11 @@ public class EtherealTDGame extends ApplicationAdapter {
     private Texture mortarTexture;
     private Texture cannonballTexture;
     private Texture mortarRoundTexture;
-    private Texture enemyTexture;
+    private Texture blastCrawlerTexture;
+    private Texture alpecaTexture;
+    private Texture faunTexture;
+    private Texture hoplitaiTexture;
+    private Texture freddyTexture;
 
     private TowerFactory towerFactory;
     private EnemyFactory enemyFactory;
@@ -70,7 +74,11 @@ public class EtherealTDGame extends ApplicationAdapter {
         cannonballTexture = new Texture("projectiles/cannonball.png");
         mortarRoundTexture = new Texture("projectiles/mortar_round.png");
 
-        enemyTexture = new Texture("enemies/dummy.png");
+        blastCrawlerTexture = new Texture("enemies/BlastCrawler.png");
+        alpecaTexture = new Texture("enemies/Alpeca.png");
+        faunTexture = new Texture("enemies/Faun.png");
+        hoplitaiTexture = new Texture("enemies/Hoplitai.png");
+        freddyTexture = new Texture("enemies/EthericNightmare-FreddyFazbear.png");
 
         projectilePool = new ProjectilePool();
 
@@ -82,7 +90,14 @@ public class EtherealTDGame extends ApplicationAdapter {
             mortarRoundTexture
         );
 
-        enemyFactory = new EnemyFactory(enemyTexture, map.getWaypoints());
+        enemyFactory = new EnemyFactory(
+            blastCrawlerTexture,
+            alpecaTexture,
+            faunTexture,
+            hoplitaiTexture,
+            freddyTexture,
+            map.getWaypoints()
+        );
 
         events = new GameEvents();
 
@@ -310,6 +325,10 @@ public class EtherealTDGame extends ApplicationAdapter {
         if (state instanceof PlayingState
             || state instanceof PlacementState) {
 
+            for (Tower t : towers) {
+                t.setStunned(false);
+            }
+
             for (Enemy e : enemies) {
                 e.update(delta);
                 e.applyTowerEffects(towers);
@@ -317,8 +336,8 @@ public class EtherealTDGame extends ApplicationAdapter {
 
             for (Tower t : towers) {
                 t.update(delta, enemies);
-            }
 
+            }
             projectilePool.update(delta, enemies);
             removeInactiveEnemies();
         }
@@ -357,7 +376,7 @@ public class EtherealTDGame extends ApplicationAdapter {
                 batch.setColor(1, 1, 1, 0.45f);
 
                 batch.draw(
-                    enemyTexture,
+                    blastCrawlerTexture,
                     mouseWorld.x - 22,
                     mouseWorld.y - 22,
                     44,
@@ -500,6 +519,10 @@ public class EtherealTDGame extends ApplicationAdapter {
         cannonballTexture.dispose();
         mortarRoundTexture.dispose();
 
-        enemyTexture.dispose();
+        blastCrawlerTexture.dispose();
+        alpecaTexture.dispose();
+        faunTexture.dispose();
+        hoplitaiTexture.dispose();
+        freddyTexture.dispose();
     }
 }

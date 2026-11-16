@@ -28,7 +28,7 @@ public class TowerFactory {
             250,
             325,
             90,
-            260,
+            150,
             new CannonStrategy(projectiles, cannonball)
         );
     }
