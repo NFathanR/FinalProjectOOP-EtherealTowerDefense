@@ -6,7 +6,7 @@ import com.etherealtowerdefense.game.entities.Enemy;
 import java.util.List;
 
 public class Hoplitai extends Enemy {
-    public static final float BASE_HP = 340f;
+    public static final float BASE_HP = 150f;
     public static final float BASE_SPEED = 140f;
 
     public Hoplitai(Texture texture, List<Vector2> path) {

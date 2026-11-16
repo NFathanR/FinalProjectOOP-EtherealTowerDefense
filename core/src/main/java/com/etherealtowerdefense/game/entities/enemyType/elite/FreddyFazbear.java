@@ -9,7 +9,7 @@ import com.etherealtowerdefense.game.entities.Tower;
 import java.util.List;
 
 public class FreddyFazbear extends Enemy {
-    public static final float BASE_HP = 1200f;
+    public static final float BASE_HP = 600f;
     public static final float BASE_SPEED = 38f;
     public static final float SECONDARY_HITBOX_RADIUS = 180f;
     private static final Color HITBOX_COLOR = new Color(0.12f, 0.55f, 1f, 0.95f);
