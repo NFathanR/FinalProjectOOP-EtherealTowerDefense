@@ -19,6 +19,7 @@ public class MainMenu {
         stage.addActor(root);
 
         TextButton play = UIFactory.createButton("Play");
+        TextButton Options = UIFactory.createButton("Options");
         TextButton exit = UIFactory.createButton("Exit");
 
         play.addListener(new ClickListener() {
@@ -27,6 +28,7 @@ public class MainMenu {
                 onPlay.run();
             }
         });
+
         exit.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -34,8 +36,11 @@ public class MainMenu {
             }
         });
 
+
+
         root.add(UIFactory.createTitle("Ethereal Tower Defense")).padBottom(50).row();
         root.add(play).width(250).height(60).pad(10).row();
+        root.add(Options).width(250).height(60).pad(10).row();
         root.add(exit).width(250).height(60).pad(10);
     }
 
