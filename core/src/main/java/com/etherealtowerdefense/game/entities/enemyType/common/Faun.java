@@ -6,7 +6,7 @@ import com.etherealtowerdefense.game.entities.Enemy;
 import java.util.List;
 
 public class Faun extends Enemy {
-    public static final float BASE_HP = 240f;
+    public static final float BASE_HP = 120f;
     public static final float BASE_SPEED = 125f;
 
     public Faun(Texture texture, List<Vector2> path) {
