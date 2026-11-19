@@ -13,6 +13,7 @@ public class Tower {
     private final Texture texture;
     private final float originX, originY, drawSize, range;
     private float rotation;
+    private float visualScale = 1f;
     private float turnSpeed = 360f; // in degrees per second yall
     private static final float AIM_TOLERANCE_DEGREES = 2f;
     private final AttackStrategy strategy;
@@ -39,6 +40,11 @@ public class Tower {
 
     public void update(float delta, List<Enemy> enemies) {
         if (stunned) return;
+
+        if (strategy.usesCustomUpdate()) {
+            strategy.update(this, enemies, delta);
+            return;
+        }
         cooldown -= delta;
 
         if (recoilElapsed >= 0f) {
@@ -84,7 +90,7 @@ public class Tower {
     public void draw(SpriteBatch batch) {
         float recoil = getRecoilFactor();
 
-        float animatedSize = drawSize * (1f + RECOIL_SCALE * recoil);
+        float animatedSize = drawSize * visualScale * (1f + RECOIL_SCALE * recoil);
 
         float ox = originX * animatedSize / 500f;
         float oy = originY * animatedSize / 500f;
@@ -156,5 +162,8 @@ public class Tower {
     public AttackStrategy getStrategy() { return strategy; }
     public float getCollisionRadius() { return 28f; }
     public void setRotation(float rotation) { this.rotation = rotation; }
+    public float getRotation() { return rotation; }
+    public void setVisualScale(float visualScale) { this.visualScale = visualScale; }
+    public float getVisualScale() { return visualScale; }
     public void setTurnSpeed(float turnSpeed) { this.turnSpeed = turnSpeed; }
 }

@@ -19,6 +19,11 @@ public class FreddyFazbear extends Enemy {
     }
 
     @Override
+    public boolean isBoss() {
+        return true;
+    }
+
+    @Override
     public void drawEffect(ShapeRenderer shapes) {
         if (!active) return;
         shapes.setColor(HITBOX_COLOR);

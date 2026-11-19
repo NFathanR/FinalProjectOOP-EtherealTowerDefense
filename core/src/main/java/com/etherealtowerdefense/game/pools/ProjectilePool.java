@@ -1,10 +1,10 @@
 package com.etherealtowerdefense.game.pools;
 
 import com.badlogic.gdx.utils.Pool;
+import com.etherealtowerdefense.game.effects.SplashIndicatorManager;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.etherealtowerdefense.game.entities.Enemy;
 import com.etherealtowerdefense.game.entities.Projectile;
 import java.util.ArrayList;
@@ -12,6 +12,11 @@ import java.util.List;
 
 public class ProjectilePool extends Pool<Projectile> {
     private final List<Projectile> active = new ArrayList<>();
+    private final SplashIndicatorManager splashIndicators;
+
+    public ProjectilePool(SplashIndicatorManager splashIndicators) {
+        this.splashIndicators = splashIndicators;
+    }
 
     public Projectile obtain(Texture texture, Vector2 start, Enemy target, float speed, float damage) {
         Projectile projectile = super.obtain();
@@ -36,7 +41,10 @@ public class ProjectilePool extends Pool<Projectile> {
         for (int i = active.size() - 1; i >= 0; i--) {
             Projectile projectile = active.get(i);
             projectile.update(delta);
-            projectile.updateMortar(delta, enemies);
+            boolean mortarImpact = projectile.updateMortar(delta, enemies);
+            if (mortarImpact) {
+                splashIndicators.spawn(projectile.getImpactPosition(), projectile.getSplashRadius());
+            }
             if (!projectile.isActive()) {
                 active.remove(i);
                 free(projectile);
@@ -64,7 +72,4 @@ public class ProjectilePool extends Pool<Projectile> {
         for (Projectile projectile : active) projectile.draw(batch);
     }
 
-    public void drawImpacts(ShapeRenderer shapes) {
-        for (Projectile projectile : active) projectile.drawImpact(shapes);
-    }
 }

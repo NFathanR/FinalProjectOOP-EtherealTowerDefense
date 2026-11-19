@@ -1,9 +1,7 @@
 package com.etherealtowerdefense.game.entities;
 
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import java.util.List;
 
@@ -16,8 +14,7 @@ public class Projectile {
     private float speed, damage, splashRadius, travelDuration, progress;
     private float baseSize = 90f, lobScale = 1f;
     private float startX, startY;
-    private float impactVisualTime;
-    private boolean active, lobbed, showingImpact;
+    private boolean active, lobbed;
 
     public void init(Texture texture, Vector2 start, Enemy target, float speed, float damage) {
         this.texture = texture;
@@ -28,7 +25,6 @@ public class Projectile {
         splashRadius = 0f;
         progress = 0f;
         lobbed = false;
-        showingImpact = false;
         active = true;
     }
 
@@ -48,13 +44,11 @@ public class Projectile {
         lobScale = Math.min(1f, distance / 260f);
         progress = 0f;
         lobbed = true;
-        showingImpact = false;
-        impactVisualTime = 0f;
         active = true;
     }
 
     public void update(float delta) {
-        if (!active || lobbed || showingImpact) return;
+        if (!active || lobbed) return;
         if (target == null || !target.isActive()) { active = false; return; }
         Vector2 direction = new Vector2(target.getPosition()).sub(position);
         float step = speed * delta;
@@ -64,13 +58,8 @@ public class Projectile {
         } else position.mulAdd(direction.nor(), step);
     }
 
-    public void updateMortar(float delta, List<Enemy> enemies) {
-        if (!active || !lobbed) return;
-        if (showingImpact) {
-            impactVisualTime -= delta;
-            if (impactVisualTime <= 0f) active = false;
-            return;
-        }
+    public boolean updateMortar(float delta, List<Enemy> enemies) {
+        if (!active || !lobbed) return false;
         float averageFactor = 1f - 0.65f * (2f / (float)Math.PI);
         float speedFactor = 1f - 0.65f * (float)Math.sin(Math.PI * progress);
         progress = Math.min(1f, progress + (delta / travelDuration) * speedFactor / averageFactor);
@@ -81,25 +70,17 @@ public class Projectile {
                 if (enemy.isActive() && enemy.getPosition().dst(destination) <= splashRadius)
                     enemy.damage(damage);
             }
-            showingImpact = true;
-            impactVisualTime = 0.38f;
+            active = false;
+            return true;
         }
+        return false;
     }
 
     public void draw(SpriteBatch batch) {
-        if (!active || showingImpact) return;
+        if (!active) return;
         float size = baseSize;
         if (lobbed) size *= 1f + 1.35f * lobScale * (float)Math.sin(Math.PI * progress);
         batch.draw(texture, position.x - size / 2f, position.y - size / 2f, size, size);
-    }
-
-    /** Draws a temporary expanding/fading splash-radius indicator at the impact point. */
-    public void drawImpact(ShapeRenderer shapes) {
-        if (!active || !showingImpact) return;
-        float alpha = Math.max(0f, impactVisualTime / 0.38f);
-        float expansion = 1f + (1f - alpha) * 0.12f;
-        shapes.setColor(1f, 0.58f, 0.12f, alpha);
-        shapes.circle(destination.x, destination.y, splashRadius * expansion, 48);
     }
 
     public boolean isLobbed() {
@@ -107,5 +88,7 @@ public class Projectile {
     }
     public boolean isActive() { return active; }
     public void deactivate() { active = false; }
+    public Vector2 getImpactPosition() { return destination; }
+    public float getSplashRadius() { return splashRadius; }
     public void setMortarStart(Vector2 start) { startX = start.x; startY = start.y; }
 }
