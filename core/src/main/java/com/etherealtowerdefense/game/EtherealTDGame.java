@@ -15,6 +15,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20; //Bantu transparan(sen)
 
+import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.etherealtowerdefense.game.commands.*;
 import com.etherealtowerdefense.game.entities.*;
 import com.etherealtowerdefense.game.factories.*;
