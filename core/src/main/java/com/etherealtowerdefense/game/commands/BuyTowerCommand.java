@@ -7,7 +7,8 @@ public class BuyTowerCommand implements GameCommand {
 
     public enum Kind {
         CANNON,
-        MORTAR
+        MORTAR,
+        CAESAR_SHIELD
     }
 
     private final Kind kind;
@@ -26,10 +27,20 @@ public class BuyTowerCommand implements GameCommand {
 
     @Override
     public void execute() {
-        result.accept(
-            kind == Kind.CANNON
-                ? factory.createCannon()
-                : factory.createMortar()
-        );
+        Tower tower;
+        switch (kind) {
+            case CANNON:
+                tower = factory.createCannon();
+                break;
+            case MORTAR:
+                tower = factory.createMortar();
+                break;
+            case CAESAR_SHIELD:
+                tower = factory.createCaesarShield();
+                break;
+            default:
+                throw new IllegalStateException("Unknown tower kind: " + kind);
+        }
+        result.accept(tower);
     }
 }

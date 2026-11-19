@@ -20,6 +20,7 @@ import com.etherealtowerdefense.game.factories.*;
 import com.etherealtowerdefense.game.map.GameMap;
 import com.etherealtowerdefense.game.observers.*;
 import com.etherealtowerdefense.game.pools.*;
+import com.etherealtowerdefense.game.effects.SplashIndicatorManager;
 import com.etherealtowerdefense.game.states.*;
 import com.etherealtowerdefense.game.ui.MainMenu;
 
@@ -38,6 +39,7 @@ public class EtherealTDGame extends ApplicationAdapter {
 
     private Texture cannonTexture;
     private Texture mortarTexture;
+    private Texture caesarShieldTexture;
     private Texture cannonballTexture;
     private Texture mortarRoundTexture;
     private Texture blastCrawlerTexture;
@@ -50,6 +52,7 @@ public class EtherealTDGame extends ApplicationAdapter {
     private EnemyFactory enemyFactory;
 
     private ProjectilePool projectilePool;
+    private SplashIndicatorManager splashIndicators;
 
     private final List<Tower> towers = new ArrayList<>();
     private final List<Enemy> enemies = new ArrayList<>();
@@ -91,6 +94,7 @@ public class EtherealTDGame extends ApplicationAdapter {
 
         cannonTexture = new Texture("towers/cannon.png");
         mortarTexture = new Texture("towers/mortar.png");
+        caesarShieldTexture = new Texture("towers/caesarshield.png");
 
         cannonballTexture = new Texture("projectiles/cannonball.png");
         mortarRoundTexture = new Texture("projectiles/mortar_round.png");
@@ -101,14 +105,17 @@ public class EtherealTDGame extends ApplicationAdapter {
         hoplitaiTexture = new Texture("enemies/Hoplitai.png");
         freddyTexture = new Texture("enemies/EthericNightmare-FreddyFazbear.png");
 
-        projectilePool = new ProjectilePool();
+        splashIndicators = new SplashIndicatorManager();
+        projectilePool = new ProjectilePool(splashIndicators);
 
         towerFactory = new TowerFactory(
             projectilePool,
             cannonTexture,
             cannonballTexture,
             mortarTexture,
-            mortarRoundTexture
+            mortarRoundTexture,
+            caesarShieldTexture,
+            splashIndicators
         );
 
         enemyFactory = new EnemyFactory(
@@ -146,18 +153,32 @@ public class EtherealTDGame extends ApplicationAdapter {
                     return true;
                 }
 
-                if (keycode >= Input.Keys.NUM_3 && keycode <= Input.Keys.NUM_7) {
-                    EnemyFactory.Type[] types = {
-                        EnemyFactory.Type.BLAST_CRAWLER,
-                        EnemyFactory.Type.ALPECA,
-                        EnemyFactory.Type.FAUN,
-                        EnemyFactory.Type.HOPLITAI,
-                        EnemyFactory.Type.FREDDY_FAZBEAR
-                    };
-                    EnemyFactory.Type type = types[keycode - Input.Keys.NUM_3];
-                    new SpawnEnemyCommand(enemyFactory, enemies, type).execute();
-                    events.publish(new GameEvent(GameEvent.Type.ENEMY_SPAWNED));
+                if (keycode == Input.Keys.NUM_3) {
+                    selectTower(BuyTowerCommand.Kind.CAESAR_SHIELD);
                     return true;
+                }
+
+                int[] spawnKeys = {
+                    Input.Keys.Y,
+                    Input.Keys.U,
+                    Input.Keys.I,
+                    Input.Keys.O,
+                    Input.Keys.P
+                };
+                EnemyFactory.Type[] spawnTypes = {
+                    EnemyFactory.Type.BLAST_CRAWLER,
+                    EnemyFactory.Type.ALPECA,
+                    EnemyFactory.Type.FAUN,
+                    EnemyFactory.Type.HOPLITAI,
+                    EnemyFactory.Type.FREDDY_FAZBEAR
+                };
+
+                for (int i = 0; i < spawnKeys.length; i++) {
+                    if (keycode == spawnKeys[i]) {
+                        new SpawnEnemyCommand(enemyFactory, enemies, spawnTypes[i]).execute();
+                        events.publish(new GameEvent(GameEvent.Type.ENEMY_SPAWNED));
+                        return true;
+                    }
                 }
 
                 if (keycode == Input.Keys.SPACE) {
@@ -366,6 +387,7 @@ public class EtherealTDGame extends ApplicationAdapter {
 
             }
             projectilePool.update(delta, enemies);
+            splashIndicators.update(delta);
             removeInactiveEnemies();
         }
 
@@ -439,12 +461,12 @@ public class EtherealTDGame extends ApplicationAdapter {
         //cannon renders first so it goes below towers epicly
         projectilePool.drawCannonProjectiles(batch);
 
-        for (Tower t : towers) {
-            t.draw(batch);
-        }
-
         for (Enemy e : enemies) {
             e.draw(batch);
+        }
+
+        for (Tower t : towers) {
+            t.draw(batch);
         }
 
         projectilePool.drawMortarProjectiles(batch);
@@ -580,10 +602,13 @@ public class EtherealTDGame extends ApplicationAdapter {
             shapes.end();
         }
 
-        //  mortar porjectile impact
+        // Shared splash indicators (Mortar, Caesar Shield, and future splash towers).
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
         shapes.begin(ShapeRenderer.ShapeType.Line);
-        projectilePool.drawImpacts(shapes);
+        splashIndicators.draw(shapes);
         shapes.end();
+        Gdx.gl.glDisable(GL20.GL_BLEND);
     }
 
     // window stuff
@@ -605,6 +630,7 @@ public class EtherealTDGame extends ApplicationAdapter {
 
         cannonTexture.dispose();
         mortarTexture.dispose();
+        caesarShieldTexture.dispose();
 
         cannonballTexture.dispose();
         mortarRoundTexture.dispose();

@@ -11,6 +11,8 @@ import com.badlogic.gdx.math.MathUtils;
 /** Shared movement, health and rendering behaviour for every enemy type. */
 public class Enemy {
     protected final Vector2 position = new Vector2();
+    private final Vector2 lastMovementDirection = new Vector2();
+    private final Vector2 knockbackVelocity = new Vector2();
     protected List<Vector2> path;
     protected int waypoint;
     protected float speed, health, maxHealth, distanceTravelled, rotation, turningSpeed;
@@ -42,6 +44,11 @@ public class Enemy {
         this.rotation = 0f;
         this.turningSpeed = speed * 3f;
         position.set(path.get(0));
+        lastMovementDirection.setZero();
+        knockbackVelocity.setZero();
+        if (path != null && path.size() > 1) {
+            lastMovementDirection.set(path.get(1)).sub(path.get(0)).nor();
+        }
         this.hitFlashTimer = 0f;
         this.shakeTimer = 0f;
         this.shakeX = 0f;
@@ -84,6 +91,7 @@ public class Enemy {
         if (waypoint < path.size()) {
             Vector2 target = path.get(waypoint);
             Vector2 direction = new Vector2(target).sub(position).nor();
+            if (!direction.isZero(0.0001f)) lastMovementDirection.set(direction);
 
             float targetRotation = (direction.angleDeg() + 90f) % 360f;
 
@@ -109,12 +117,20 @@ public class Enemy {
                 waypoint++;
             } else {
                 Vector2 direction = new Vector2(target).sub(position).nor();
+                if (!direction.isZero(0.0001f)) lastMovementDirection.set(direction);
 
                 position.mulAdd(direction, remaining);
                 distanceTravelled += remaining;
                 remaining = 0;
             }
         }
+        // Apply external knockback after path movement so it is not cancelled
+        // by the path-following step in the same frame.
+        if (!knockbackVelocity.isZero(0.01f)) {
+            position.mulAdd(knockbackVelocity, delta);
+            knockbackVelocity.scl(Math.max(0f, 1f - 6f * delta));
+        }
+
         if (waypoint >= path.size()) active = false;
     }
 
@@ -165,6 +181,13 @@ public class Enemy {
     }
 
     public boolean isActive() { return active; }
+    public boolean isBoss() { return false; }
+    public Vector2 getVelocity() { return new Vector2(lastMovementDirection).scl(speed); }
+    public Vector2 getLastMovementDirection() { return new Vector2(lastMovementDirection); }
+    public void applyKnockback(Vector2 direction, float strength) {
+        if (direction == null || direction.isZero(0.0001f)) return;
+        knockbackVelocity.mulAdd(direction.cpy().nor(), strength);
+    }
     public Vector2 getPosition() { return position; }
     public float getHealth() { return health; }
     public float getMaxHealth() { return maxHealth; }
