@@ -4,6 +4,7 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -21,9 +22,11 @@ import com.etherealtowerdefense.game.map.GameMap;
 import com.etherealtowerdefense.game.observers.*;
 import com.etherealtowerdefense.game.pools.*;
 import com.etherealtowerdefense.game.states.*;
+import com.etherealtowerdefense.game.ui.GameHUD;
 import com.etherealtowerdefense.game.ui.MainMenu;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class EtherealTDGame extends ApplicationAdapter {
@@ -67,6 +70,12 @@ public class EtherealTDGame extends ApplicationAdapter {
     private MainMenu menu;
     private boolean inMenu = true;
     private InputAdapter gameInput;
+
+    // hud
+    private GameHUD hud;
+    private static final int MAX_BASE_HP = 100;
+    private int baseHp = MAX_BASE_HP;
+    private int gold = 1000;
 
     @Override
     public void create() {
@@ -125,6 +134,12 @@ public class EtherealTDGame extends ApplicationAdapter {
         events.add(event ->
             Gdx.app.log("GameEvent", event.getType().name())
         );
+
+        events.add(event -> {
+            if (event.getType() == GameEvent.Type.ENEMY_ESCAPED) {
+                damageBase(1);
+            }
+        });
 
         gameInput = new InputAdapter() {
 
@@ -242,10 +257,28 @@ public class EtherealTDGame extends ApplicationAdapter {
             }
         };
 
+        hud = new GameHUD(
+            new StretchViewport(GameMap.WORLD_WIDTH, GameMap.WORLD_HEIGHT),
+            Arrays.asList(
+                new GameHUD.TowerOption(BuyTowerCommand.Kind.CANNON.name(), "1: Cannon"),
+                new GameHUD.TowerOption(BuyTowerCommand.Kind.MORTAR.name(), "2: Mortar")
+            ),
+            id -> {
+                if (id == null) {
+                    cancelPlacement();
+                } else {
+                    selectTower(BuyTowerCommand.Kind.valueOf(id));
+                }
+            }
+        );
+        hud.onBaseHpChanged(baseHp, MAX_BASE_HP);
+        hud.onGoldChanged(gold);
+
         menu = new MainMenu(() -> {
             inMenu = false;
             Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-            Gdx.input.setInputProcessor(gameInput);
+            hud.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+            Gdx.input.setInputProcessor(new InputMultiplexer(hud.getStage(), gameInput));
         });
         Gdx.input.setInputProcessor(menu.getStage());
     }
@@ -253,6 +286,8 @@ public class EtherealTDGame extends ApplicationAdapter {
     // tower selector
 
     private void selectTower(BuyTowerCommand.Kind kind) {
+
+        hud.setSelectedTower(kind.name());
 
         new BuyTowerCommand(
             kind,
@@ -275,10 +310,27 @@ public class EtherealTDGame extends ApplicationAdapter {
     private void cancelPlacement() {
         previewTower = null;
         previewEnemy = false;
+        hud.clearSelection();
 
         if (state instanceof PlacementState) {
             setState(new PlayingState());
         }
+    }
+
+    private void damageBase(int amount) {
+        baseHp = Math.max(0, baseHp - amount);
+        hud.onBaseHpChanged(baseHp, MAX_BASE_HP);
+    }
+
+    private void rewardKill(Enemy e) {
+        int reward = rewardFor(e);
+        gold += reward;
+        hud.onGoldChanged(gold);
+        hud.showGoldPopup(e.getPosition().x, e.getPosition().y + 24f, reward);
+    }
+
+    private int rewardFor(Enemy e) {
+        return Math.max(1, Math.round(e.getMaxHealth() / 10f));
     }
 
     private void updateMouse(int sx, int sy) {
@@ -481,11 +533,22 @@ public class EtherealTDGame extends ApplicationAdapter {
 
         drawEnemyEffects();
         drawPlacementFeedback();
+
+        hud.render(delta);
     }
 
     private void removeInactiveEnemies() {
         for (int i = enemies.size() - 1; i >= 0; i--) {
-            if (!enemies.get(i).isActive()) enemies.remove(i);
+            Enemy e = enemies.get(i);
+            if (!e.isActive()) {
+                if (e.getHealth() > 0) {
+                    events.publish(new GameEvent(GameEvent.Type.ENEMY_ESCAPED));
+                } else {
+                    events.publish(new GameEvent(GameEvent.Type.ENEMY_DEFEATED));
+                    rewardKill(e);
+                }
+                enemies.remove(i);
+            }
         }
     }
 
@@ -590,8 +653,12 @@ public class EtherealTDGame extends ApplicationAdapter {
 
     @Override
     public void resize(int width, int height) {
-        if (width > 0 && height > 0 && inMenu) {
-            menu.resize(width, height);
+        if (width > 0 && height > 0) {
+            if (inMenu) {
+                menu.resize(width, height);
+            } else {
+                hud.resize(width, height);
+            }
         }
     }
 
@@ -599,6 +666,7 @@ public class EtherealTDGame extends ApplicationAdapter {
     public void dispose() {
 
         menu.dispose();
+        hud.dispose();
 
         batch.dispose();
         shapes.dispose();
