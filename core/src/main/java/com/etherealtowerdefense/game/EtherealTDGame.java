@@ -40,6 +40,7 @@ public class EtherealTDGame extends ApplicationAdapter {
     private static final int RACK_HEIGHT = 180;
     // Font untuk label placeholder tower rack (sen)
     private BitmapFont rackFont;
+    private BitmapFont waveFont;
 
     private Texture cannonTexture;
     private Texture mortarTexture;
@@ -69,6 +70,7 @@ public class EtherealTDGame extends ApplicationAdapter {
     private final Vector2 mouseWorld = new Vector2();
 
     private boolean placementValid;
+    private BuyTowerCommand.Kind placingKind;
 
     // menu
     private MainMenu menu;
@@ -89,9 +91,8 @@ public class EtherealTDGame extends ApplicationAdapter {
         // Menggeser koordinat gambar agar tersedia ruang Tower Rack (sen)
         shapes.getProjectionMatrix().setToOrtho2D(0, -RACK_HEIGHT, 1280, 900);
         // Menyiapkan font putih untuk nama tower (sen)
-        rackFont = new BitmapFont();
-        rackFont.setColor(Color.WHITE);
-        rackFont.getData().setScale(1.5f);
+        rackFont = FontFactory.get(22);
+        waveFont = FontFactory.get(30);
         map = new GameMap();
 
 
@@ -160,17 +161,17 @@ public class EtherealTDGame extends ApplicationAdapter {
                 }
 
                 if (keycode == Input.Keys.NUM_1) {
-                    selectTower(BuyTowerCommand.Kind.CANNON);
+                    onTowerButton(BuyTowerCommand.Kind.CANNON);
                     return true;
                 }
 
                 if (keycode == Input.Keys.NUM_2) {
-                    selectTower(BuyTowerCommand.Kind.MORTAR);
+                    onTowerButton(BuyTowerCommand.Kind.MORTAR);
                     return true;
                 }
 
                 if (keycode == Input.Keys.NUM_3) {
-                    selectTower(BuyTowerCommand.Kind.CAESAR_SHIELD);
+                    onTowerButton(BuyTowerCommand.Kind.CAESAR_SHIELD);
                     return true;
                 }
 
@@ -280,16 +281,18 @@ public class EtherealTDGame extends ApplicationAdapter {
         };
 
         hud = new GameHUD(
-            new StretchViewport(GameMap.WORLD_WIDTH, GameMap.WORLD_HEIGHT),
+            new StretchViewport(GameMap.WORLD_WIDTH, GameMap.WORLD_HEIGHT + RACK_HEIGHT),
+            -RACK_HEIGHT,
             Arrays.asList(
                 new GameHUD.TowerOption(BuyTowerCommand.Kind.CANNON.name(), "1: Cannon"),
-                new GameHUD.TowerOption(BuyTowerCommand.Kind.MORTAR.name(), "2: Mortar")
+                new GameHUD.TowerOption(BuyTowerCommand.Kind.MORTAR.name(), "2: Mortar"),
+                new GameHUD.TowerOption(BuyTowerCommand.Kind.CAESAR_SHIELD.name(), "3: Caesar\nShield")
             ),
             id -> {
                 if (id == null) {
                     cancelPlacement();
                 } else {
-                    selectTower(BuyTowerCommand.Kind.valueOf(id));
+                    onTowerButton(BuyTowerCommand.Kind.valueOf(id));
                 }
             }
         );
@@ -310,6 +313,7 @@ public class EtherealTDGame extends ApplicationAdapter {
     private void selectTower(BuyTowerCommand.Kind kind) {
 
         hud.setSelectedTower(kind.name());
+        placingKind = kind;
 
         new BuyTowerCommand(
             kind,
@@ -323,6 +327,14 @@ public class EtherealTDGame extends ApplicationAdapter {
         ).execute();
     }
 
+    private void onTowerButton(BuyTowerCommand.Kind kind) {
+        if (state instanceof PlacementState && kind == placingKind) {
+            cancelPlacement();
+        } else {
+            selectTower(kind);
+        }
+    }
+
     private void setState(GameState next) {
         state.exit();
         state = next;
@@ -333,6 +345,7 @@ public class EtherealTDGame extends ApplicationAdapter {
         previewTower = null;
         previewEnemy = false;
         hud.clearSelection();
+        placingKind = null;
 
         if (state instanceof PlacementState) {
             setState(new PlayingState());
@@ -446,28 +459,6 @@ public class EtherealTDGame extends ApplicationAdapter {
 
         drawMap();
 
-        // Mengaktifkan blending untuk panel transparan(sen)
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
-        // Menggambar background placeholder HP dan Money (sen)
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-
-
-        // Warna cokelat gelap dengan transparansi 75% (sen)
-        shapes.setColor(0.30f, 0.19f, 0.12f, 0.75f);
-
-        // Panel rasio 7:2, menempel di pojok kiri atas (sen)
-        shapes.rect(0, GameMap.WORLD_HEIGHT - 80, 280, 80);
-
-
-        // Mengembalikan rendering ke kondisi normal (sen)
-        Gdx.gl.glDisable(GL20.GL_BLEND);
-        shapes.end();
-
-        // Mengembalikan rendering ke kondisi normal (sen)
-        Gdx.gl.glDisable(GL20.GL_BLEND);
-
         // Menggambar background tower rack di bawah map (sen)
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(0.36f, 0.23f, 0.14f, 1f);
@@ -492,18 +483,13 @@ public class EtherealTDGame extends ApplicationAdapter {
 
 
         // Menampilkan placeholder HP dan Money (sen)
-        rackFont.setColor(Color.WHITE);
+        //rackFont.setColor(Color.WHITE);
 
-        rackFont.draw(batch, "Base HP: 100", 25, GameMap.WORLD_HEIGHT - 18);
-        rackFont.draw(batch, "Money: $ 1000", 25, GameMap.WORLD_HEIGHT - 53);
+        //rackFont.draw(batch, "Base HP: 100", 25, GameMap.WORLD_HEIGHT - 18);
+        //rackFont.draw(batch, "Money: $ 1000", 25, GameMap.WORLD_HEIGHT - 53);
 
         // Menampilkan placeholder Wave di pojok kanan atas (sen)
-        rackFont.getData().setScale(2f);
-
-        rackFont.draw(batch, "Wave: 1", GameMap.WORLD_WIDTH - 130, GameMap.WORLD_HEIGHT - 25);
-
-        // Mengembalikan ukuran font untuk teks lainnya (Sen)
-        rackFont.getData().setScale(1.5f);
+        waveFont.draw(batch, "Wave: 1", GameMap.WORLD_WIDTH - 130, GameMap.WORLD_HEIGHT - 25);
 
         // Menggambar label untuk setiap slot tower rack (sen)
         for (int i = 0; i < 7; i++) {
@@ -710,7 +696,6 @@ public class EtherealTDGame extends ApplicationAdapter {
         hoplitaiTexture.dispose();
         freddyTexture.dispose();
 
-        // Membersihkan resource font (sen)
-        rackFont.dispose();
+        FontFactory.dispose();
     }
 }
