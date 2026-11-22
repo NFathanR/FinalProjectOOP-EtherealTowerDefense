@@ -4,7 +4,6 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 
-/** A stationary, one-second fading circle for any splash-damage attack. */
 public class SplashIndicator {
 
     private static final float DURATION = 1f;

@@ -121,14 +121,12 @@ public class CaesarShieldStrategy implements AttackStrategy {
 
             float eased = asymmetricSpinEase(progress, 0.35f);
 
-            // Compensate for the wind-up rotation.
             float compensatedSpinDegrees = totalSpinDegrees + windupAngle;
 
             tower.setRotation(
                 spinStartRotation + spinDirection * compensatedSpinDegrees * eased
             );
 
-            // Rapid growth followed by gradual shrinking.
             float growProgress = growDuration / spinDuration;
 
             if (progress < growProgress) {
@@ -171,10 +169,6 @@ public class CaesarShieldStrategy implements AttackStrategy {
         cooldown = fireInterval;
     }
 
-    /**
-     * With LibGDX's Y-up coordinates, a target below the shield's path gives
-     * a negative cross product and requires clockwise rotation.
-     */
     private float determineSpinDirection(Tower tower, Enemy enemy) {
         Vector2 velocity = enemy.getVelocity();
 
@@ -237,21 +231,19 @@ public class CaesarShieldStrategy implements AttackStrategy {
 
     private Enemy findTarget(Tower tower, List<Enemy> enemies) {
         Enemy best = null;
-        float greatestProgress = -1f;
-
+        float bestValue = 0f;
         for (Enemy enemy : enemies) {
-            if (!enemy.isActive()) continue;
-
-            if (tower.getPosition().dst(enemy.getPosition()) > tower.getRange()) {
-                continue;
+            if (!enemy.isActive() || tower.getPosition().dst(enemy.getPosition()) > tower.getRange()) continue;
+            float value;
+            switch (tower.getTargetPriority()) {
+                case LAST: value = -enemy.getDistanceTravelled(); break;
+                case CLOSE: value = -tower.getPosition().dst2(enemy.getPosition()); break;
+                case STRONG: value = enemy.getHealth(); break;
+                case FIRST:
+                default: value = enemy.getDistanceTravelled(); break;
             }
-
-            if (enemy.getDistanceTravelled() > greatestProgress) {
-                greatestProgress = enemy.getDistanceTravelled();
-                best = enemy;
-            }
+            if (best == null || value > bestValue) { best = enemy; bestValue = value; }
         }
-
         return best;
     }
 
@@ -259,6 +251,9 @@ public class CaesarShieldStrategy implements AttackStrategy {
     public void fire(Tower tower, Enemy target) {
         // Caesar Shield starts its attack from update().
     }
+
+    @Override
+    public Float getDamage() { return damage; }
 
     @Override
     public float getFireInterval() {

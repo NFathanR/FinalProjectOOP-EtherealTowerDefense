@@ -5,7 +5,6 @@ import com.etherealtowerdefense.game.entities.Enemy;
 import com.etherealtowerdefense.game.entities.Tower;
 import com.etherealtowerdefense.game.pools.ProjectilePool;
 
-/** Configurable fixed-destination splash attack used by the Mortar tower. */
 public class MortarStrategy implements AttackStrategy {
 
     private final ProjectilePool pool;
@@ -60,6 +59,9 @@ public class MortarStrategy implements AttackStrategy {
     public float getDeadzoneRadius() {
         return deadzoneRadius;
     }
+
+    @Override
+    public Float getDamage() { return damage; }
 
     @Override
     public float getFireInterval() {

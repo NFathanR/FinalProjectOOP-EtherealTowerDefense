@@ -11,7 +11,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.etherealtowerdefense.game.factories.UIFactory;
 
 public class MainMenu {
-    private final Stage stage = new Stage(new FitViewport(1280, 720));
+    private final Stage stage = new Stage(new FitViewport(1600, 900));
 
     public MainMenu(Runnable onPlay) {
         Table root = new Table();
@@ -54,5 +54,5 @@ public class MainMenu {
 
     public void resize(int w, int h) { stage.getViewport().update(w, h, true); }
 
-    public void dispose() { stage.dispose(); }
+    public void dispose() { stage.dispose(); UIFactory.dispose(); }
 }
