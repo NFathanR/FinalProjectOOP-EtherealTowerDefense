@@ -1,6 +1,6 @@
-
 package com.etherealtowerdefense.game.ui;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -23,20 +23,16 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.etherealtowerdefense.game.entities.Tower;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class GameHUD implements Disposable {
-
     public static class TowerOption {
         public final String id;
         public final String name;
-
-        public TowerOption(String id, String name) {
-            this.id = id;
-            this.name = name;
-        }
+        public TowerOption(String id, String name) { this.id = id; this.name = name; }
     }
 
     public interface TowerSelectListener {
@@ -45,36 +41,37 @@ public class GameHUD implements Disposable {
 
     private static final float BAR_WIDTH = 240f;
     private static final float BAR_HEIGHT = 18f;
-    private static final float BUTTON_WIDTH = 130f;
-    private static final float BUTTON_HEIGHT = 64f;
+    private static final float RACK_HEIGHT = 180f;
+    private static final float SLOT_WIDTH = 160f;
+    private static final float SLOT_HEIGHT = 140f;
+    private static final float SLOT_PITCH = 178f;
+    private static final float SLOT_LEFT = 26f;
+    private static final float SLOT_BOTTOM = 20f;
 
     private final Stage stage;
     private final BitmapFont font;
     private final Texture whiteTexture;
     private final TextureRegionDrawable white;
-
+    private final List<Texture> extraTextures = new ArrayList<>();
     private final ProgressBar.ProgressBarStyle hpStyle;
     private final ProgressBar hpBar;
-    private final Drawable hpGreen;
-    private final Drawable hpYellow;
-    private final Drawable hpRed;
+    private final Drawable hpGreen, hpYellow, hpRed;
     private final Label hpLabel;
-
     private final Texture dennyTexture;
     private final TextureRegionDrawable denny;
     private final Label.LabelStyle dennyStyle;
     private final Label dennyLabel;
-
     private final List<TowerOption> options;
     private final List<TextButton> buttons = new ArrayList<>();
     private final TowerSelectListener listener;
-    private String selectedId;
     private final TowerSidebar towerSidebar;
+    private String selectedId;
 
-    public GameHUD(Viewport viewport, List<TowerOption> options, TowerSelectListener listener, TowerSidebar.ActionsListener sidebarListener) {
+    public GameHUD(Viewport viewport, List<TowerOption> options,
+                   TowerSelectListener listener, TowerSidebar.ActionsListener sidebarListener) {
         this.options = new ArrayList<>(options);
         this.listener = listener;
-        this.stage = new Stage(viewport);
+        stage = new Stage(viewport);
 
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(Color.WHITE);
@@ -83,87 +80,94 @@ public class GameHUD implements Disposable {
         pixmap.dispose();
         white = new TextureRegionDrawable(new TextureRegion(whiteTexture));
 
-        font = FontFactory.create(28f);
-
+        font = FontFactory.create(22f);
         Label.LabelStyle labelStyle = new Label.LabelStyle(font, Color.WHITE);
 
-        dennyTexture = new Texture(com.badlogic.gdx.Gdx.files.internal("icons/icon_denny.png"));
+        dennyTexture = new Texture(Gdx.files.internal("icons/icon_denny.png"));
         dennyTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         denny = new TextureRegionDrawable(new TextureRegion(dennyTexture));
-
         dennyStyle = new Label.LabelStyle(font, Color.WHITE);
         dennyLabel = new Label("0", dennyStyle);
 
         TextButton.TextButtonStyle buttonStyle = new TextButton.TextButtonStyle();
         buttonStyle.font = font;
         buttonStyle.fontColor = Color.WHITE;
-        buttonStyle.disabledFontColor = Color.GRAY;
-        buttonStyle.up = tinted(new Color(0.20f, 0.24f, 0.30f, 0.95f), 0f, 0f);
-        buttonStyle.down = tinted(new Color(0.12f, 0.15f, 0.20f, 0.95f), 0f, 0f);
-        buttonStyle.checked = tinted(new Color(0.20f, 0.55f, 0.35f, 0.95f), 0f, 0f);
-        buttonStyle.disabled = tinted(new Color(0.12f, 0.12f, 0.12f, 0.60f), 0f, 0f);
+        buttonStyle.disabledFontColor = Color.LIGHT_GRAY;
+        buttonStyle.up = bordered(new Color(.58f,.61f,.66f,1f), new Color(.80f,.83f,.87f,1f));
+        buttonStyle.down = bordered(new Color(.40f,.44f,.50f,1f), new Color(.68f,.72f,.78f,1f));
+        buttonStyle.checked = bordered(new Color(.58f,.61f,.66f,1f), new Color(.94f,.96f,1f,1f));
+        buttonStyle.disabled = bordered(new Color(.30f,.32f,.36f,1f), new Color(.48f,.50f,.54f,1f));
 
-        hpGreen = tinted(new Color(0.25f, 0.80f, 0.30f, 1f), 0f, BAR_HEIGHT);
-        hpYellow = tinted(new Color(0.95f, 0.80f, 0.20f, 1f), 0f, BAR_HEIGHT);
-        hpRed = tinted(new Color(0.85f, 0.20f, 0.20f, 1f), 0f, BAR_HEIGHT);
-
+        hpGreen = tinted(new Color(.25f,.80f,.30f,1f), 0f, BAR_HEIGHT);
+        hpYellow = tinted(new Color(.95f,.80f,.20f,1f), 0f, BAR_HEIGHT);
+        hpRed = tinted(new Color(.85f,.20f,.20f,1f), 0f, BAR_HEIGHT);
         hpStyle = new ProgressBar.ProgressBarStyle();
-        hpStyle.background = tinted(new Color(0.15f, 0.15f, 0.15f, 0.9f), 0f, BAR_HEIGHT);
+        hpStyle.background = tinted(new Color(.15f,.15f,.15f,.9f), 0f, BAR_HEIGHT);
         hpStyle.knobBefore = hpGreen;
-
-        hpBar = new ProgressBar(0f, 1f, 0.001f, false, hpStyle);
-        hpBar.setAnimateDuration(0.25f);
+        hpBar = new ProgressBar(0f, 1f, .001f, false, hpStyle);
+        hpBar.setAnimateDuration(.25f);
         hpLabel = new Label("", labelStyle);
 
+        // Gerald's original tower rack layout, centered in the 1280px gameplay column.
         Table towerBar = new Table();
-        towerBar.setBackground(tinted(new Color(0f, 0f, 0f, 0.6f), 0f, 0f));
+        towerBar.left().bottom();
         towerBar.setTouchable(Touchable.enabled);
         towerBar.addListener(new InputListener() {
-            @Override
-            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+            @Override public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
                 return true;
             }
         });
-
+        float rackContentWidth = options.size() * SLOT_WIDTH + Math.max(0, options.size() - 1) * (SLOT_PITCH - SLOT_WIDTH);
+        float firstSlotPadding = Math.max(0f, (1600f - rackContentWidth) / 2f);
         for (final TowerOption option : this.options) {
             TextButton button = new TextButton(option.name, buttonStyle);
+
+            button.getLabel().setFontScale(0.75f);
+            button.getLabel().setWrap(true);
+            button.getLabel().setAlignment(com.badlogic.gdx.utils.Align.center);
+
             button.setProgrammaticChangeEvents(false);
             button.addListener(new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, Actor actor) {
+                @Override public void changed(ChangeEvent event, Actor actor) {
                     select(option.id.equals(selectedId) ? null : option.id);
                 }
             });
+
             buttons.add(button);
-            towerBar.add(button).size(BUTTON_WIDTH, BUTTON_HEIGHT).pad(8f);
+            towerBar.add(button).size(SLOT_WIDTH, SLOT_HEIGHT)
+                .padLeft(buttons.size() == 1 ? firstSlotPadding : SLOT_PITCH - SLOT_WIDTH)
+                .padBottom(SLOT_BOTTOM);
         }
 
         Table hpBox = new Table();
         hpBox.add(hpLabel).left().row();
         hpBox.add(hpBar).width(BAR_WIDTH).height(BAR_HEIGHT).left().padTop(4f);
-
         Table dennyBox = new Table();
         dennyBox.add(new Image(denny)).size(28f);
         dennyBox.add(dennyLabel).padLeft(8f);
-
         Table top = new Table();
         top.add(hpBox).left().top();
         top.add().expandX();
-        top.add(dennyBox).right().top();
+        top.add(dennyBox).right().top().padTop(48f).padRight(10f);
 
-        Table leftColumn = new Table();
-        leftColumn.add(top).growX().pad(16f).row();
-        leftColumn.add().grow().row();
-        leftColumn.add(towerBar).height(160f).growX();
+        Table topArea = new Table();
+        topArea.add(top).growX().pad(12f).row();
+        topArea.add().grow();
 
         Table root = new Table();
         root.setFillParent(true);
-        root.add(leftColumn).width(1280f).growY();
+
+        root.add(topArea).width(1280f).growY();
         root.add().width(320f).growY();
+        root.row();
+
+        root.add(towerBar).colspan(2).width(1600f)
+            .height(RACK_HEIGHT).growX();
+
         stage.addActor(root);
+
         towerSidebar = new TowerSidebar(sidebarListener);
         stage.addActor(towerSidebar);
-
         onBaseHpChanged(1, 1);
     }
 
@@ -171,15 +175,12 @@ public class GameHUD implements Disposable {
         int safeMax = Math.max(max, 1);
         int safeCurrent = Math.max(0, Math.min(current, safeMax));
         float percent = safeCurrent / (float) safeMax;
-
         hpBar.setValue(percent);
         hpLabel.setText("Base HP: " + safeCurrent + " / " + safeMax);
-        hpStyle.knobBefore = percent > 0.5f ? hpGreen : (percent > 0.25f ? hpYellow : hpRed);
+        hpStyle.knobBefore = percent > .5f ? hpGreen : (percent > .25f ? hpYellow : hpRed);
     }
 
-    public void onDennyChanged(int denny) {
-        dennyLabel.setText(String.valueOf(denny));
-    }
+    public void onDennyChanged(int amount) { dennyLabel.setText(String.valueOf(amount)); }
 
     public void showDennyPopup(float worldX, float worldY, int amount) {
         Table popup = new Table();
@@ -187,76 +188,53 @@ public class GameHUD implements Disposable {
         popup.add(new Image(denny)).size(20f);
         popup.add(new Label("+" + amount, dennyStyle)).padLeft(4f);
         popup.pack();
-        popup.setPosition(worldX - popup.getWidth() / 2f, worldY + 180f);
+        popup.setPosition(worldX - popup.getWidth()/2f, worldY + 180f);
         popup.addAction(Actions.sequence(
             Actions.parallel(
-                Actions.moveBy(0f, 48f, 0.9f, Interpolation.pow2Out),
-                Actions.sequence(Actions.delay(0.4f), Actions.fadeOut(0.5f))
-            ),
-            Actions.removeActor()
+                Actions.moveBy(0f, 48f, .9f, Interpolation.pow2Out),
+                Actions.sequence(Actions.delay(.4f), Actions.fadeOut(.5f))
+            ), Actions.removeActor()
         ));
         stage.addActor(popup);
     }
 
-    public void setSelectedTower(String id) {
-        selectedId = id;
-        refreshSelection();
-    }
+    public void setSelectedTower(String id) { selectedId = id; refreshSelection(); }
+    public void clearSelection() { setSelectedTower(null); towerSidebar.hide(); }
+    public void showTowerSidebar(Tower tower) { towerSidebar.show(tower); }
+    public String getSelectedTowerId() { return selectedId; }
+    public Stage getStage() { return stage; }
+    public void render(float delta) { stage.getViewport().apply(); stage.act(delta); stage.draw(); }
+    public void resize(int width, int height) { stage.getViewport().update(width, height, true); }
 
-    public void clearSelection() {
-        setSelectedTower(null);
-        towerSidebar.hide();
-    }
-
-    public void showTowerSidebar(com.etherealtowerdefense.game.entities.Tower tower) {
-        towerSidebar.show(tower);
-    }
-
-    public String getSelectedTowerId() {
-        return selectedId;
-    }
-
-    public Stage getStage() {
-        return stage;
-    }
-
-    public void render(float delta) {
-        stage.getViewport().apply();
-        stage.act(delta);
-        stage.draw();
-    }
-
-    public void resize(int width, int height) {
-        stage.getViewport().update(width, height, true);
-    }
-
-    @Override
-    public void dispose() {
+    @Override public void dispose() {
         stage.dispose();
         font.dispose();
         whiteTexture.dispose();
         dennyTexture.dispose();
+        for (Texture texture : extraTextures) texture.dispose();
         towerSidebar.dispose();
     }
 
     private void select(String id) {
         selectedId = id;
         refreshSelection();
-        if (listener != null) {
-            listener.onTowerSelected(id);
-        }
+        if (listener != null) listener.onTowerSelected(id);
     }
-
     private void refreshSelection() {
-        for (int i = 0; i < buttons.size(); i++) {
-            buttons.get(i).setChecked(options.get(i).id.equals(selectedId));
-        }
+        for (int i=0;i<buttons.size();i++) buttons.get(i).setChecked(options.get(i).id.equals(selectedId));
     }
-
+    private Drawable bordered(Color fill, Color border) {
+        Pixmap pixmap = new Pixmap(12,12,Pixmap.Format.RGBA8888);
+        pixmap.setColor(border); pixmap.fill();
+        pixmap.setColor(fill); pixmap.fillRectangle(4,4,4,4);
+        Texture texture = new Texture(pixmap); pixmap.dispose();
+        extraTextures.add(texture);
+        return new com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable(
+            new com.badlogic.gdx.graphics.g2d.NinePatch(texture,4,4,4,4));
+    }
     private Drawable tinted(Color color, float minWidth, float minHeight) {
         Drawable drawable = white.tint(color);
-        drawable.setMinWidth(minWidth);
-        drawable.setMinHeight(minHeight);
+        drawable.setMinWidth(minWidth); drawable.setMinHeight(minHeight);
         return drawable;
     }
 }

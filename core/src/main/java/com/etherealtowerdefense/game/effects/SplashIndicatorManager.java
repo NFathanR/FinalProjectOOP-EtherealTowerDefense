@@ -5,6 +5,7 @@ import com.badlogic.gdx.math.Vector2;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Shared lifecycle manager for splash indicators spawned by any tower. */
 public class SplashIndicatorManager {
 
     private final List<SplashIndicator> active = new ArrayList<>();

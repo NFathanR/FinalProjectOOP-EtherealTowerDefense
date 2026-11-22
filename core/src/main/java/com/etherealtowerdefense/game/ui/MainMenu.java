@@ -54,5 +54,5 @@ public class MainMenu {
 
     public void resize(int w, int h) { stage.getViewport().update(w, h, true); }
 
-    public void dispose() { stage.dispose(); UIFactory.dispose(); }
+    public void dispose() { stage.dispose(); }
 }

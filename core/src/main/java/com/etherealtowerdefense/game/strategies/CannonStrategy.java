@@ -5,6 +5,7 @@ import com.etherealtowerdefense.game.entities.Enemy;
 import com.etherealtowerdefense.game.entities.Tower;
 import com.etherealtowerdefense.game.pools.ProjectilePool;
 
+/** Configurable homing-projectile attack used by the Cannon tower. */
 public class CannonStrategy implements AttackStrategy {
 
     private final ProjectilePool pool;

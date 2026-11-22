@@ -5,11 +5,10 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import java.util.List;
-import java.util.ArrayList;
-import java.util.Iterator;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.MathUtils;
 
+/** Shared movement, health and rendering behaviour for every enemy type. */
 public class Enemy {
     protected final Vector2 position = new Vector2();
     private final Vector2 lastMovementDirection = new Vector2();
@@ -19,12 +18,6 @@ public class Enemy {
     protected float speed, health, maxHealth, distanceTravelled, rotation, turningSpeed;
     protected boolean active;
     protected Texture texture;
-
-    private final List<EnemyStatusEffect> statusEffects = new ArrayList<>();
-    private final List<Float> shieldLayers = new ArrayList<>();
-    private float statusSlowMultiplier = 1f;
-    private boolean statusFrozen;
-    private boolean statusStunned;
 
     protected float hitFlashTimer;
     protected float shakeTimer;
@@ -56,11 +49,6 @@ public class Enemy {
         if (path != null && path.size() > 1) {
             lastMovementDirection.set(path.get(1)).sub(path.get(0)).nor();
         }
-        statusEffects.clear();
-        shieldLayers.clear();
-        statusSlowMultiplier = 1f;
-        statusFrozen = false;
-        statusStunned = false;
         this.hitFlashTimer = 0f;
         this.shakeTimer = 0f;
         this.shakeX = 0f;
@@ -84,9 +72,7 @@ public class Enemy {
 
     public void update(float delta) {
         if (!active || path == null) return;
-        updateStatusEffects(delta);
-        if (!active) return;
-        float remaining = (statusFrozen || statusStunned ? 0f : speed * statusSlowMultiplier) * delta;
+        float remaining = speed * delta;
         this.hitFlashTimer = Math.max(0f, this.hitFlashTimer - delta);
         this.shakeTimer = Math.max(0f, this.shakeTimer - delta);
 
@@ -179,123 +165,19 @@ public class Enemy {
         batch.setColor(previousColor);
     }
 
-    public void drawEffect(ShapeRenderer shapes) {
-        if (!active) return;
-        float y = position.y + 29f;
-        float offset = 0f;
-        for (EnemyStatusEffect effect : statusEffects) {
-            if (!effect.isActive()) continue;
-            switch (effect.getType()) {
-                case FIRE: shapes.setColor(1f, 0.35f, 0.05f, 0.95f); break;
-                case SLOW: shapes.setColor(0.25f, 0.75f, 1f, 0.95f); break;
-                case FREEZE: shapes.setColor(0.55f, 0.9f, 1f, 0.95f); break;
-                case STUN: shapes.setColor(1f, 0.9f, 0.15f, 0.95f); break;
-            }
-            shapes.circle(position.x + offset, y, 4f, 12);
-            offset += 11f;
-        }
-        if (!shieldLayers.isEmpty()) {
-            shapes.setColor(0.35f, 0.85f, 1f, 0.95f);
-            shapes.circle(position.x, position.y, 27f, 28);
-        }
-    }
+    public void drawEffect(ShapeRenderer shapes) { }
 
     public void applyTowerEffects(List<Tower> towers) { }
 
     public void damage(float amount) {
-        if (!active || amount <= 0f) return;
-        float finalDamage = statusStunned ? amount * 1.25f : amount;
-        if (!shieldLayers.isEmpty()) {
-            int last = shieldLayers.size() - 1;
-            float remainingShield = shieldLayers.get(last) - finalDamage;
-            if (remainingShield > 0f) shieldLayers.set(last, remainingShield);
-            else shieldLayers.remove(last);
-        } else {
-            health -= finalDamage;
-            if (health <= 0f) {
-                health = 0f;
-                active = false;
-            }
-        }
+        health -= amount;
+
         hitFlashTimer = FLASH_DURATION;
         shakeTimer = SHAKE_DURATION;
-    }
 
-    public void applyFire(float damagePerSecond, float duration) {
-        applyStatus(EnemyStatusEffect.Type.FIRE, duration, damagePerSecond);
-    }
-
-    public void applySlow(float speedMultiplier, float duration) {
-        applyStatus(EnemyStatusEffect.Type.SLOW, duration, Math.max(0f, Math.min(1f, speedMultiplier)));
-    }
-
-    public void applyFreeze(float duration) {
-        applyStatus(EnemyStatusEffect.Type.FREEZE, duration, 0f);
-    }
-
-    public void applyStun(float duration) {
-        applyStatus(EnemyStatusEffect.Type.STUN, duration, 0f);
-    }
-
-    public void addShield(float amount) {
-        if (amount > 0f) shieldLayers.add(amount);
-    }
-
-    public float getShieldHealth() {
-        float total = 0f;
-        for (Float layer : shieldLayers) total += layer;
-        return total;
-    }
-
-    public int getShieldLayers() { return shieldLayers.size(); }
-    public boolean hasStatus(EnemyStatusEffect.Type type) {
-        for (EnemyStatusEffect effect : statusEffects)
-            if (effect.getType() == type && effect.isActive()) return true;
-        return false;
-    }
-
-    public float getStatusRemaining(EnemyStatusEffect.Type type) {
-        float remaining = 0f;
-        for (EnemyStatusEffect effect : statusEffects)
-            if (effect.getType() == type) remaining = Math.max(remaining, effect.getRemaining());
-        return remaining;
-    }
-
-    private void applyStatus(EnemyStatusEffect.Type type, float duration, float strength) {
-        if (duration <= 0f) return;
-        // Refresh an existing effect rather than stacking duplicate copies.
-        for (int i = 0; i < statusEffects.size(); i++) {
-            EnemyStatusEffect current = statusEffects.get(i);
-            if (current.getType() == type) {
-                float mergedStrength = type == EnemyStatusEffect.Type.SLOW
-                    ? Math.min(strength, current.getStrength())
-                    : Math.max(strength, current.getStrength());
-                statusEffects.set(i, new EnemyStatusEffect(type,
-                    Math.max(duration, current.getRemaining()), mergedStrength));
-                return;
-            }
+        if (health <= 0) {
+            active = false;
         }
-        statusEffects.add(new EnemyStatusEffect(type, duration, strength));
-    }
-
-    private void updateStatusEffects(float delta) {
-        statusSlowMultiplier = 1f;
-        statusFrozen = false;
-        statusStunned = false;
-        float fireDamage = 0f;
-        Iterator<EnemyStatusEffect> iterator = statusEffects.iterator();
-        while (iterator.hasNext()) {
-            EnemyStatusEffect effect = iterator.next();
-            fireDamage += effect.update(delta);
-            if (!effect.isActive()) { iterator.remove(); continue; }
-            switch (effect.getType()) {
-                case SLOW: statusSlowMultiplier = Math.min(statusSlowMultiplier, effect.getStrength()); break;
-                case FREEZE: statusFrozen = true; break;
-                case STUN: statusStunned = true; break;
-                default: break;
-            }
-        }
-        if (fireDamage > 0f) damage(fireDamage);
     }
 
     public boolean isActive() { return active; }

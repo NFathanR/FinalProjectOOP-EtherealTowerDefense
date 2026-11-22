@@ -11,6 +11,7 @@ import com.etherealtowerdefense.game.entities.enemyType.elite.FreddyFazbear;
 
 import java.util.List;
 
+/** Creates concrete enemy classes; each enemy type owns its own class and stats. */
 public class EnemyFactory {
     public enum Type { BLAST_CRAWLER, ALPECA, FAUN, HOPLITAI, FREDDY_FAZBEAR }
 

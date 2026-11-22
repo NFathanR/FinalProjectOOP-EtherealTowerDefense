@@ -121,12 +121,14 @@ public class CaesarShieldStrategy implements AttackStrategy {
 
             float eased = asymmetricSpinEase(progress, 0.35f);
 
+            // Compensate for the wind-up rotation.
             float compensatedSpinDegrees = totalSpinDegrees + windupAngle;
 
             tower.setRotation(
                 spinStartRotation + spinDirection * compensatedSpinDegrees * eased
             );
 
+            // Rapid growth followed by gradual shrinking.
             float growProgress = growDuration / spinDuration;
 
             if (progress < growProgress) {
@@ -169,6 +171,10 @@ public class CaesarShieldStrategy implements AttackStrategy {
         cooldown = fireInterval;
     }
 
+    /**
+     * With LibGDX's Y-up coordinates, a target below the shield's path gives
+     * a negative cross product and requires clockwise rotation.
+     */
     private float determineSpinDirection(Tower tower, Enemy enemy) {
         Vector2 velocity = enemy.getVelocity();
 
@@ -233,16 +239,21 @@ public class CaesarShieldStrategy implements AttackStrategy {
         Enemy best = null;
         float bestValue = 0f;
         for (Enemy enemy : enemies) {
-            if (!enemy.isActive() || tower.getPosition().dst(enemy.getPosition()) > tower.getRange()) continue;
+            if (!enemy.isActive() || tower.getPosition().dst(enemy.getPosition()) > tower.getRange()) {
+                continue;
+            }
             float value;
             switch (tower.getTargetPriority()) {
                 case LAST: value = -enemy.getDistanceTravelled(); break;
                 case CLOSE: value = -tower.getPosition().dst2(enemy.getPosition()); break;
-                case STRONG: value = enemy.getHealth(); break;
+                case STRONG: value = enemy.getMaxHealth(); break;
                 case FIRST:
                 default: value = enemy.getDistanceTravelled(); break;
             }
-            if (best == null || value > bestValue) { best = enemy; bestValue = value; }
+            if (best == null || value > bestValue) {
+                best = enemy;
+                bestValue = value;
+            }
         }
         return best;
     }

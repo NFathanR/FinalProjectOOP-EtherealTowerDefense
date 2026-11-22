@@ -13,6 +13,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.GL20; //Bantu transparan(sen)
 
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -26,6 +27,7 @@ import com.etherealtowerdefense.game.pools.*;
 import com.etherealtowerdefense.game.effects.SplashIndicatorManager;
 import com.etherealtowerdefense.game.states.*;
 import com.etherealtowerdefense.game.ui.GameHUD;
+import com.etherealtowerdefense.game.ui.TowerSidebar;
 import com.etherealtowerdefense.game.ui.MainMenu;
 
 import java.util.ArrayList;
@@ -37,12 +39,15 @@ public class EtherealTDGame extends ApplicationAdapter {
     private SpriteBatch batch;
     private ShapeRenderer shapes;
     private GameMap map;
-    // The playfield is 1280x720; the remaining 320px is reserved for the HUD.
+    // Tinggi area Tower Rack di bawah map (sen)
     private static final int RACK_HEIGHT = 180;
     private static final float WORLD_WIDTH = 1600f;
     private static final float WORLD_HEIGHT = 900f;
     private Viewport worldViewport;
     private OrthographicCamera worldCamera;
+    // Font untuk label placeholder tower rack (sen)
+    private BitmapFont rackFont;
+    private BitmapFont waveFont;
 
     private Texture cannonTexture;
     private Texture mortarTexture;
@@ -75,6 +80,7 @@ public class EtherealTDGame extends ApplicationAdapter {
     private final Vector2 mouseWorld = new Vector2();
 
     private boolean placementValid;
+    private BuyTowerCommand.Kind placingKind;
 
     // menu
     private MainMenu menu;
@@ -90,10 +96,13 @@ public class EtherealTDGame extends ApplicationAdapter {
     @Override
     public void create() {
 
-
         batch = new SpriteBatch();
         shapes = new ShapeRenderer();
+        rackFont = FontFactory.get(22);
+        waveFont = FontFactory.get(30);
         map = new GameMap();
+
+        // Keep Gerald's 1280px playfield intact; reserve 320px on the right for the sidebar.
         worldCamera = new OrthographicCamera();
         worldViewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, worldCamera);
         worldCamera.position.set(WORLD_WIDTH / 2f, GameMap.WORLD_HEIGHT / 2f - RACK_HEIGHT / 2f, 0f);
@@ -161,17 +170,17 @@ public class EtherealTDGame extends ApplicationAdapter {
                 }
 
                 if (keycode == Input.Keys.NUM_1) {
-                    selectTower(BuyTowerCommand.Kind.CANNON);
+                    onTowerButton(BuyTowerCommand.Kind.CANNON);
                     return true;
                 }
 
                 if (keycode == Input.Keys.NUM_2) {
-                    selectTower(BuyTowerCommand.Kind.MORTAR);
+                    onTowerButton(BuyTowerCommand.Kind.MORTAR);
                     return true;
                 }
 
                 if (keycode == Input.Keys.NUM_3) {
-                    selectTower(BuyTowerCommand.Kind.CAESAR_SHIELD);
+                    onTowerButton(BuyTowerCommand.Kind.CAESAR_SHIELD);
                     return true;
                 }
 
@@ -245,16 +254,12 @@ public class EtherealTDGame extends ApplicationAdapter {
                         cancelPlacement();
 
                     } else if (previewTower != null && placementValid) {
+
                         if (movingTower != null) {
                             movingTower.place(mouseWorld.x, mouseWorld.y);
                             movingTower = null;
                         } else {
-                            new PlaceTowerCommand(
-                                previewTower,
-                                mouseWorld.x,
-                                mouseWorld.y,
-                                towers
-                            ).execute();
+                            new PlaceTowerCommand(previewTower, mouseWorld.x, mouseWorld.y, towers).execute();
                             events.publish(new GameEvent(GameEvent.Type.TOWER_PLACED));
                         }
                         previewTower = null;
@@ -289,16 +294,14 @@ public class EtherealTDGame extends ApplicationAdapter {
             new FitViewport(WORLD_WIDTH, WORLD_HEIGHT),
             Arrays.asList(
                 new GameHUD.TowerOption(BuyTowerCommand.Kind.CANNON.name(), "1: Cannon"),
-                new GameHUD.TowerOption(BuyTowerCommand.Kind.MORTAR.name(), "2: Mortar")
+                new GameHUD.TowerOption(BuyTowerCommand.Kind.MORTAR.name(), "2: Mortar"),
+                new GameHUD.TowerOption(BuyTowerCommand.Kind.CAESAR_SHIELD.name(), "3: Caesar Shield")
             ),
             id -> {
-                if (id == null) {
-                    cancelPlacement();
-                } else {
-                    selectTower(BuyTowerCommand.Kind.valueOf(id));
-                }
+                if (id == null) cancelPlacement();
+                else onTowerButton(BuyTowerCommand.Kind.valueOf(id));
             },
-            new com.etherealtowerdefense.game.ui.TowerSidebar.ActionsListener() {
+            new TowerSidebar.ActionsListener() {
                 @Override public void onMove(Tower tower) {
                     if (tower == null || !towers.contains(tower)) return;
                     movingTower = tower;
@@ -315,7 +318,9 @@ public class EtherealTDGame extends ApplicationAdapter {
                     if (selectedTower == tower) selectedTower = null;
                     hud.clearSelection();
                 }
-                @Override public void onUpgrade(Tower tower, String element) { }
+                @Override public void onUpgrade(Tower tower, String element) {
+                    // Upgrade controls are available; upgrade economy is not implemented in Gerald yet.
+                }
                 @Override public void onPriorityChanged(Tower tower) { }
             }
         );
@@ -338,6 +343,7 @@ public class EtherealTDGame extends ApplicationAdapter {
         selectedTower = null;
         hud.clearSelection();
         hud.setSelectedTower(kind.name());
+        placingKind = kind;
 
         new BuyTowerCommand(
             kind,
@@ -358,7 +364,8 @@ public class EtherealTDGame extends ApplicationAdapter {
             float distance = point.dst2(tower.getPosition());
             float radius = tower.getCollisionRadius() + 24f;
             if (distance <= radius * radius && distance < best) {
-                closest = tower; best = distance;
+                closest = tower;
+                best = distance;
             }
         }
         return closest;
@@ -383,10 +390,17 @@ public class EtherealTDGame extends ApplicationAdapter {
         float deadzone = selectedTower.getStrategy().getDeadzoneRadius();
         if (deadzone > 0f) {
             shapes.setColor(1f, 1f, 1f, 0.12f);
-            shapes.circle(selectedTower.getPosition().x, selectedTower.getPosition().y,
-                deadzone, 64);
+            shapes.circle(selectedTower.getPosition().x, selectedTower.getPosition().y, deadzone, 64);
         }
         shapes.end();
+    }
+
+    private void onTowerButton(BuyTowerCommand.Kind kind) {
+        if (state instanceof PlacementState && kind == placingKind) {
+            cancelPlacement();
+        } else {
+            selectTower(kind);
+        }
     }
 
     private void setState(GameState next) {
@@ -403,6 +417,7 @@ public class EtherealTDGame extends ApplicationAdapter {
         previewEnemy = false;
         movingTower = null;
         hud.clearSelection();
+        placingKind = null;
 
         if (state instanceof PlacementState) {
             setState(new PlayingState());
@@ -451,10 +466,7 @@ public class EtherealTDGame extends ApplicationAdapter {
         if (placementValid) {
 
             for (Tower t : towers) {
-
-                if (t == movingTower) {
-                    continue;
-                }
+                if (t == movingTower) continue;
 
                 if (t.getPosition().dst(mouseWorld)
                     < r + t.getCollisionRadius()) {
@@ -509,14 +521,39 @@ public class EtherealTDGame extends ApplicationAdapter {
         shapes.setProjectionMatrix(worldCamera.combined);
         drawMap();
 
-        // Enable alpha blending for selection/range overlays and sprites.
+        // Menggambar background tower rack di bawah map (sen)
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0.34f, 0.37f, 0.42f, 1f);
+        shapes.rect(0, -RACK_HEIGHT, WORLD_WIDTH, RACK_HEIGHT);
+
+
+        // Three available tower slots, centered within the 1280px gameplay area.
+        int rackStartX = Math.round((WORLD_WIDTH - (3 * 160 + 2 * 18)) / 2f);
+        for (int i = 0; i < 3; i++) {
+            int x = rackStartX + i * 178;
+            shapes.setColor(0.78f, 0.81f, 0.86f, 1f);
+            shapes.rect(x, -160, 160, 140);
+            shapes.setColor(0.48f, 0.52f, 0.58f, 1f);
+            shapes.rect(x + 4, -156, 152, 132);
+        }
+
+        shapes.end();
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
         drawSelectedTowerRange();
-
-        // The old hand-drawn HP/money/wave/rack placeholders were removed.
-        // GameHUD is now the single source of truth for all dynamic UI.
         batch.begin();
+
+
+        // Menampilkan placeholder HP dan Money (sen)
+        //rackFont.setColor(Color.WHITE);
+
+        //rackFont.draw(batch, "Base HP: 100", 25, GameMap.WORLD_HEIGHT - 18);
+        //rackFont.draw(batch, "Money: $ 1000", 25, GameMap.WORLD_HEIGHT - 53);
+
+        // Menampilkan placeholder Wave di pojok kanan atas (sen)
+        waveFont.draw(batch, "Wave: 1", GameMap.WORLD_WIDTH - 130, GameMap.WORLD_HEIGHT - 25);
+
+        // Tower selection labels are rendered by the HUD buttons.
 
         //cannon renders first so it goes below towers epicly
         projectilePool.drawCannonProjectiles(batch);
@@ -565,19 +602,6 @@ public class EtherealTDGame extends ApplicationAdapter {
         drawPlacementFeedback();
 
         hud.render(delta);
-    }
-
-    @Override
-    public void resize(int width, int height) {
-        if (worldViewport != null) {
-            worldViewport.update(width, height, true);
-            worldCamera.position.set(WORLD_WIDTH / 2f, GameMap.WORLD_HEIGHT / 2f - RACK_HEIGHT / 2f, 0f);
-            worldCamera.update();
-            batch.setProjectionMatrix(worldCamera.combined);
-            shapes.setProjectionMatrix(worldCamera.combined);
-        }
-        if (hud != null) hud.resize(width, height);
-        if (menu != null) menu.resize(width, height);
     }
 
     private void removeInactiveEnemies() {
@@ -697,6 +721,22 @@ public class EtherealTDGame extends ApplicationAdapter {
         Gdx.gl.glDisable(GL20.GL_BLEND);
     }
 
+    // window stuff
+
+    @Override
+    public void resize(int width, int height) {
+        if (width <= 0 || height <= 0) return;
+        if (worldViewport != null) {
+            worldViewport.update(width, height, true);
+            worldCamera.position.set(WORLD_WIDTH / 2f, GameMap.WORLD_HEIGHT / 2f - RACK_HEIGHT / 2f, 0f);
+            worldCamera.update();
+            batch.setProjectionMatrix(worldCamera.combined);
+            shapes.setProjectionMatrix(worldCamera.combined);
+        }
+        if (hud != null) hud.resize(width, height);
+        if (menu != null) menu.resize(width, height);
+    }
+
     @Override
     public void dispose() {
 
@@ -719,6 +759,6 @@ public class EtherealTDGame extends ApplicationAdapter {
         hoplitaiTexture.dispose();
         freddyTexture.dispose();
 
-
+        FontFactory.dispose();
     }
 }

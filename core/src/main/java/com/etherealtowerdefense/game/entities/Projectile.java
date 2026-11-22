@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import java.util.List;
 
+/** Reusable projectile for homing cannon shots and fixed-destination mortar shells. */
 public class Projectile {
     private final Vector2 position = new Vector2();
     private final Vector2 destination = new Vector2();
@@ -39,6 +40,7 @@ public class Projectile {
         this.splashRadius = splashRadius;
         float distance = start.dst(impactPoint);
         travelDuration = Math.max(0.18f, distance / travelSpeed);
+        // Short shots have a deliberately smaller apparent arc, avoiding a huge shell on close targets.
         lobScale = Math.min(1f, distance / 260f);
         progress = 0f;
         lobbed = true;

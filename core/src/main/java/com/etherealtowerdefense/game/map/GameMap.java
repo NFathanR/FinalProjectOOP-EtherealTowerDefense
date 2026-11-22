@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/** Tile-based visual map with a continuous, collision-tested enemy route. */
 public class GameMap {
     public static final int TILE_SIZE = 40;
     public static final int WIDTH = 32, HEIGHT = 18;
@@ -38,6 +39,7 @@ public class GameMap {
     public boolean isBuildable(int x, int y) { return getTile(x,y) == 0; }
     public List<Vector2> getWaypoints() { return Collections.unmodifiableList(waypoints); }
 
+    /** Circle-vs-capsule test: towers must remain outside the entire road plus its safety margin. */
     public boolean intersectsPath(float x, float y, float radius) {
         float required = PATH_HALF_WIDTH + radius;
         for (int i = 0; i < waypoints.size()-1; i++)
