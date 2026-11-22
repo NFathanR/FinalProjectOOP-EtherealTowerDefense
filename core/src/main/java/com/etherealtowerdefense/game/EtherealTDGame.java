@@ -59,9 +59,11 @@ public class EtherealTDGame extends ApplicationAdapter {
     private Texture faunTexture;
     private Texture hoplitaiTexture;
     private Texture freddyTexture;
+    private Texture girtablulluTexture;
 
     private TowerFactory towerFactory;
     private EnemyFactory enemyFactory;
+    private WaveManager waveManager;
 
     private ProjectilePool projectilePool;
     private SplashIndicatorManager splashIndicators;
@@ -92,6 +94,8 @@ public class EtherealTDGame extends ApplicationAdapter {
     private static final int MAX_BASE_HP = 100;
     private int baseHp = MAX_BASE_HP;
     private int denny = 1000;
+    private float bossExplosionTimer;
+    private final Vector2 bossExplosionPosition = new Vector2();
 
     @Override
     public void create() {
@@ -124,6 +128,8 @@ public class EtherealTDGame extends ApplicationAdapter {
         faunTexture = new Texture("enemies/Faun.png");
         hoplitaiTexture = new Texture("enemies/Hoplitai.png");
         freddyTexture = new Texture("enemies/EthericNightmare-FreddyFazbear.png");
+        // Temporary visual fallback until a dedicated Girtablullu sprite is added.
+        girtablulluTexture = freddyTexture;
 
         splashIndicators = new SplashIndicatorManager();
         projectilePool = new ProjectilePool(splashIndicators);
@@ -144,8 +150,11 @@ public class EtherealTDGame extends ApplicationAdapter {
             faunTexture,
             hoplitaiTexture,
             freddyTexture,
+            girtablulluTexture,
             map.getWaypoints()
         );
+
+        waveManager = new WaveManager();
 
         events = new GameEvents();
 
@@ -189,14 +198,16 @@ public class EtherealTDGame extends ApplicationAdapter {
                     Input.Keys.U,
                     Input.Keys.I,
                     Input.Keys.O,
-                    Input.Keys.P
+                    Input.Keys.P,
+                    Input.Keys.L
                 };
                 EnemyFactory.Type[] spawnTypes = {
                     EnemyFactory.Type.BLAST_CRAWLER,
                     EnemyFactory.Type.ALPECA,
                     EnemyFactory.Type.FAUN,
                     EnemyFactory.Type.HOPLITAI,
-                    EnemyFactory.Type.FREDDY_FAZBEAR
+                    EnemyFactory.Type.FREDDY_FAZBEAR,
+                    EnemyFactory.Type.GIRTABLULLU
                 };
 
                 for (int i = 0; i < spawnKeys.length; i++) {
@@ -291,51 +302,56 @@ public class EtherealTDGame extends ApplicationAdapter {
         };
 
         hud = new GameHUD(
-    new FitViewport(WORLD_WIDTH, WORLD_HEIGHT),
-    Arrays.asList(
-        new GameHUD.TowerOption(BuyTowerCommand.Kind.CANNON.name(), "1: Cannon"),
-        new GameHUD.TowerOption(BuyTowerCommand.Kind.MORTAR.name(), "2: Mortar"),
-        new GameHUD.TowerOption(BuyTowerCommand.Kind.CAESAR_SHIELD.name(), "3: Caesar\nShield")
-    ),
-    id -> {
-        if (id == null) {
-            cancelPlacement();
-        } else {
-            onTowerButton(BuyTowerCommand.Kind.valueOf(id));
-        }
-    },
-    new TowerSidebar.ActionsListener() {
-        @Override public void onMove(Tower tower) {
-            if (tower == null || !towers.contains(tower)) return;
-            movingTower = tower;
-            movingOriginalPosition.set(tower.getPosition());
-            previewTower = tower;
-            selectedTower = null;
-            tower.setSelected(false);
-            hud.clearSelection();
-            setState(new PlacementState(tower));
-        }
+            new FitViewport(WORLD_WIDTH, WORLD_HEIGHT),
+            Arrays.asList(
+                new GameHUD.TowerOption(BuyTowerCommand.Kind.CANNON.name(), "1: Cannon"),
+                new GameHUD.TowerOption(BuyTowerCommand.Kind.MORTAR.name(), "2: Mortar"),
+                new GameHUD.TowerOption(BuyTowerCommand.Kind.CAESAR_SHIELD.name(), "3: Caesar\nShield")
+            ),
+            id -> {
+                if (id == null) {
+                    cancelPlacement();
+                } else {
+                    onTowerButton(BuyTowerCommand.Kind.valueOf(id));
+                }
+            },
+            new TowerSidebar.ActionsListener() {
+                @Override public void onMove(Tower tower) {
+                    if (tower == null || !towers.contains(tower)) return;
+                    movingTower = tower;
+                    movingOriginalPosition.set(tower.getPosition());
+                    previewTower = tower;
+                    selectedTower = null;
+                    tower.setSelected(false);
+                    hud.clearSelection();
+                    setState(new PlacementState(tower));
+                }
 
-        @Override public void onSell(Tower tower) {
-            if (tower == null) return;
-            towers.remove(tower);
-            if (selectedTower == tower) selectedTower = null;
-            hud.clearSelection();
-        }
+                @Override public void onSell(Tower tower) {
+                    if (tower == null) return;
+                    towers.remove(tower);
+                    if (selectedTower == tower) selectedTower = null;
+                    hud.clearSelection();
+                }
 
-        @Override public void onUpgrade(Tower tower, String element) {
-            // Upgrade controls are available; upgrade economy is not implemented in Gerald yet.
-        }
+                @Override public void onUpgrade(Tower tower, String element) {
+                    // Upgrade controls are available; upgrade economy is not implemented in Gerald yet.
+                }
 
-        @Override public void onPriorityChanged(Tower tower) { }
-    }
-);
+                @Override public void onPriorityChanged(Tower tower) { }
+            }
+        );
 
         hud.onBaseHpChanged(baseHp, MAX_BASE_HP);
         hud.onDennyChanged(denny);
-
+        hud.setWaveControls(() -> {
+            if (waveManager.startNextWave(enemies)) {
+                Gdx.app.log("WaveManager", "Started wave " + waveManager.getWave());
+            }
+        });
         menu = new MainMenu(() -> {
             inMenu = false;
+            waveManager.start();
             Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
             hud.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
             Gdx.input.setInputProcessor(new InputMultiplexer(hud.getStage(), gameInput));
@@ -444,6 +460,9 @@ public class EtherealTDGame extends ApplicationAdapter {
     }
 
     private int rewardFor(Enemy e) {
+        if (e instanceof com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu) {
+            return com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu.DENNY_REWARD;
+        }
         return Math.max(1, Math.round(e.getMaxHealth() / 10f));
     }
 
@@ -499,6 +518,7 @@ public class EtherealTDGame extends ApplicationAdapter {
             Gdx.graphics.getDeltaTime(),
             0.033f
         );
+        bossExplosionTimer = Math.max(0f, bossExplosionTimer - delta);
 
         ScreenUtils.clear(0.12f, 0.17f, 0.14f, 1);
 
@@ -508,6 +528,8 @@ public class EtherealTDGame extends ApplicationAdapter {
             for (Tower t : towers) {
                 t.setStunned(false);
             }
+
+            waveManager.update(delta, enemies, enemyFactory);
 
             for (Enemy e : enemies) {
                 e.update(delta);
@@ -558,7 +580,14 @@ public class EtherealTDGame extends ApplicationAdapter {
         //rackFont.draw(batch, "Money: $ 1000", 25, GameMap.WORLD_HEIGHT - 53);
 
         // Menampilkan placeholder Wave di pojok kanan atas (sen)
-        waveFont.draw(batch, "Wave: 1", GameMap.WORLD_WIDTH - 130, GameMap.WORLD_HEIGHT - 25);
+        waveFont.draw(batch, waveManager.getDisplayText(), GameMap.WORLD_WIDTH - 210, GameMap.WORLD_HEIGHT - 25);
+        for (Enemy enemy : enemies) {
+            if (enemy instanceof com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu) {
+                com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu boss =
+                    (com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu) enemy;
+                if (boss.getShieldTimer() > 0f) waveFont.draw(batch, "Girtablullu disappears in: " + (int)Math.ceil(boss.getShieldTimer()) + "s", 20, GameMap.WORLD_HEIGHT - 85);
+            }
+        }
 
         // Tower selection labels are rendered by the HUD buttons.
 
@@ -616,10 +645,38 @@ public class EtherealTDGame extends ApplicationAdapter {
             Enemy e = enemies.get(i);
             if (!e.isActive()) {
                 if (e.getHealth() > 0) {
-                    events.publish(new GameEvent(GameEvent.Type.ENEMY_ESCAPED));
+                    if (e instanceof com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu
+                        && ((com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu) e).hasDisappeared()) {
+                        // Timer hit 0: just vanish, nothing else happens.
+                    } else if (e instanceof com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu) {
+                        baseHp = 0;
+                        hud.onBaseHpChanged(baseHp, MAX_BASE_HP);
+                    } else {
+                        events.publish(new GameEvent(GameEvent.Type.ENEMY_ESCAPED));
+                    }
                 } else {
                     events.publish(new GameEvent(GameEvent.Type.ENEMY_DEFEATED));
                     rewardKill(e);
+                    if (e instanceof com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu) {
+                        com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu boss =
+                            (com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu) e;
+                        if (boss.wasKilledDuringShield()) {
+                            bossExplosionPosition.set(e.getPosition());
+                            bossExplosionTimer = 0.75f;
+                            // Apply the 200-damage blast to any other enemy in range.
+                            for (Enemy other : enemies) {
+                                if (other != e && other.isActive() && other.getPosition().dst(e.getPosition()) <= boss.EXPLOSION_RADIUS) {
+                                    other.damage(boss.EXPLOSION_DAMAGE);
+                                }
+                            }
+                            // The current project has no tower HP system. The blast can damage the base if
+                            // the endpoint is within the radius; 200 damage is lethal to its 100 HP.
+                            Vector2 basePosition = map.getWaypoints().get(map.getWaypoints().size() - 1);
+                            if (basePosition.dst(e.getPosition()) <= boss.EXPLOSION_RADIUS) {
+                                damageBase((int)boss.EXPLOSION_DAMAGE);
+                            }
+                        }
+                    }
                 }
                 enemies.remove(i);
             }
@@ -671,6 +728,11 @@ public class EtherealTDGame extends ApplicationAdapter {
     private void drawEnemyEffects() {
         shapes.begin(ShapeRenderer.ShapeType.Line);
         for (Enemy enemy : enemies) enemy.drawEffect(shapes);
+        if (bossExplosionTimer > 0f) {
+            shapes.setColor(1f, 0.45f, 0.05f, bossExplosionTimer / 0.75f);
+            shapes.circle(bossExplosionPosition.x, bossExplosionPosition.y,
+                com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu.EXPLOSION_RADIUS, 64);
+        }
         shapes.end();
     }
 
