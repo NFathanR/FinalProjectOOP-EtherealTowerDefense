@@ -39,6 +39,9 @@ public class CannonStrategy implements AttackStrategy {
     }
 
     @Override
+    public Float getDamage() { return damage; }
+
+    @Override
     public float getFireInterval() {
         return fireInterval;
     }

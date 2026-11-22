@@ -24,9 +24,9 @@ public class UIFactory {
     public static TextButton createButton(String text) {
         TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
         style.font = FontFactory.get(BUTTON_FONT_SIZE);
-        style.up = color(new Color(0.2f, 0.2f, 0.4f, 1));
-        style.over = color(new Color(0.35f, 0.35f, 0.7f, 1));
-        style.down = color(new Color(0.1f, 0.1f, 0.25f, 1));
+        style.up = color(new Color(0.48f, 0.52f, 0.58f, 1));
+        style.over = color(new Color(0.66f, 0.70f, 0.76f, 1));
+        style.down = color(new Color(0.30f, 0.34f, 0.40f, 1));
         return new TextButton(text, style);
     }
 

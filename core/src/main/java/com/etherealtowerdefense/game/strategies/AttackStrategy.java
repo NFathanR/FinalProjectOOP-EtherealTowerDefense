@@ -8,6 +8,8 @@ public interface AttackStrategy {
     void fire(Tower tower, Enemy target);
     float getFireInterval();
 
+    default Float getDamage() { return null; }
+
     /** Strategies with multi-frame attacks can own their update and rotation. */
     default boolean usesCustomUpdate() { return false; }
 

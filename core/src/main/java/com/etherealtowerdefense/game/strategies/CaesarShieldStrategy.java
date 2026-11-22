@@ -237,21 +237,24 @@ public class CaesarShieldStrategy implements AttackStrategy {
 
     private Enemy findTarget(Tower tower, List<Enemy> enemies) {
         Enemy best = null;
-        float greatestProgress = -1f;
-
+        float bestValue = 0f;
         for (Enemy enemy : enemies) {
-            if (!enemy.isActive()) continue;
-
-            if (tower.getPosition().dst(enemy.getPosition()) > tower.getRange()) {
+            if (!enemy.isActive() || tower.getPosition().dst(enemy.getPosition()) > tower.getRange()) {
                 continue;
             }
-
-            if (enemy.getDistanceTravelled() > greatestProgress) {
-                greatestProgress = enemy.getDistanceTravelled();
+            float value;
+            switch (tower.getTargetPriority()) {
+                case LAST: value = -enemy.getDistanceTravelled(); break;
+                case CLOSE: value = -tower.getPosition().dst2(enemy.getPosition()); break;
+                case STRONG: value = enemy.getMaxHealth(); break;
+                case FIRST:
+                default: value = enemy.getDistanceTravelled(); break;
+            }
+            if (best == null || value > bestValue) {
                 best = enemy;
+                bestValue = value;
             }
         }
-
         return best;
     }
 
@@ -259,6 +262,9 @@ public class CaesarShieldStrategy implements AttackStrategy {
     public void fire(Tower tower, Enemy target) {
         // Caesar Shield starts its attack from update().
     }
+
+    @Override
+    public Float getDamage() { return damage; }
 
     @Override
     public float getFireInterval() {

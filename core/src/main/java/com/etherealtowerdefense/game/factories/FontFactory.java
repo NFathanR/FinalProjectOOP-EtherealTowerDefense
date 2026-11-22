@@ -11,8 +11,8 @@ import java.util.Map;
 
 public class FontFactory {
 
-    // Letakkan file ini di folder assets (mis. assets/fonts/Roboto-Regular.ttf), atau ubah path-nya.
-    private static final String FONT_PATH = "fonts/Roboto-Regular.ttf";
+    // Letakkan file ini di folder assets (mis. assets/fonts/Inpin-Hongmeng.ttf), atau ubah path-nya.
+    private static final String FONT_PATH = "fonts/Inpin-Hongmeng.ttf";
 
     private static final Map<Integer, BitmapFont> CACHE = new HashMap<>();
     private static FreeTypeFontGenerator generator;
