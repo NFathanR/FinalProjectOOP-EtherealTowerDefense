@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -20,14 +21,31 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.etherealtowerdefense.game.entities.Tower;
+import com.etherealtowerdefense.game.factories.FontFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * HUD saat bermain (tanpa file skin/asset tambahan):
+ *  - kiri atas  : HP base (label + bar yang berubah warna)
+ *  - kanan atas : jumlah gold (ikon koin + angka)
+ *  - bawah      : menu untuk memilih tower yang tersedia
+ *  - popup      : angka "+gold" yang naik dan memudar di posisi musuh yang mati
+ *
+ * Pemakaian (lihat EtherealTDGame):
+ *   hud = new GameHUD(new StretchViewport(1280, 900), -180f, options, id -> ...);  // id == null = batal pilih
+ *   Koordinat HUD = koordinat dunia game (peta y 0..720, Tower Rack y -180..0), jadi worldMinY = -RACK_HEIGHT.
+ *   Gdx.input.setInputProcessor(new InputMultiplexer(hud.getStage(), gameInput));
+ *   hud.onBaseHpChanged(hp, maxHp);
+ *   render(): gambar game dulu, lalu hud.render(delta);
+ *   resize(): hud.resize(w, h);   dispose(): hud.dispose();
+ */
 public class GameHUD implements Disposable {
     public static class TowerOption {
         public final String id;
@@ -35,6 +53,7 @@ public class GameHUD implements Disposable {
         public TowerOption(String id, String name) { this.id = id; this.name = name; }
     }
 
+    /** Dipanggil saat pemain memilih tower (id) atau membatalkan pilihan (null). */
     public interface TowerSelectListener {
         void onTowerSelected(String towerId);
     }
@@ -49,10 +68,12 @@ public class GameHUD implements Disposable {
     private static final float SLOT_BOTTOM = 20f;
 
     private final Stage stage;
+    private final float worldMinY;
     private final BitmapFont font;
     private final Texture whiteTexture;
     private final TextureRegionDrawable white;
     private final List<Texture> extraTextures = new ArrayList<>();
+
     private final ProgressBar.ProgressBarStyle hpStyle;
     private final ProgressBar hpBar;
     private final Drawable hpGreen, hpYellow, hpRed;
@@ -73,6 +94,7 @@ public class GameHUD implements Disposable {
         this.listener = listener;
         stage = new Stage(viewport);
 
+        // Texture 1x1 putih untuk menggambar bar dan background tanpa file gambar.
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(Color.WHITE);
         pixmap.fill();
@@ -108,7 +130,6 @@ public class GameHUD implements Disposable {
         hpBar.setAnimateDuration(.25f);
         hpLabel = new Label("", labelStyle);
 
-        // Gerald's original tower rack layout, centered in the 1280px gameplay column.
         Table towerBar = new Table();
         towerBar.left().bottom();
         towerBar.setTouchable(Touchable.enabled);
@@ -139,6 +160,7 @@ public class GameHUD implements Disposable {
                 .padBottom(SLOT_BOTTOM);
         }
 
+        // Susunan layar: baris atas (HP), pengisi ruang, menu tower di bawah.
         Table hpBox = new Table();
         hpBox.add(hpLabel).left().row();
         hpBox.add(hpBar).width(BAR_WIDTH).height(BAR_HEIGHT).left().padTop(4f);
@@ -169,6 +191,7 @@ public class GameHUD implements Disposable {
         towerSidebar = new TowerSidebar(sidebarListener);
         stage.addActor(towerSidebar);
         onBaseHpChanged(1, 1);
+        updateCamera();
     }
 
     public void onBaseHpChanged(int current, int max) {
@@ -208,7 +231,6 @@ public class GameHUD implements Disposable {
 
     @Override public void dispose() {
         stage.dispose();
-        font.dispose();
         whiteTexture.dispose();
         dennyTexture.dispose();
         for (Texture texture : extraTextures) texture.dispose();

@@ -291,39 +291,46 @@ public class EtherealTDGame extends ApplicationAdapter {
         };
 
         hud = new GameHUD(
-            new FitViewport(WORLD_WIDTH, WORLD_HEIGHT),
-            Arrays.asList(
-                new GameHUD.TowerOption(BuyTowerCommand.Kind.CANNON.name(), "1: Cannon"),
-                new GameHUD.TowerOption(BuyTowerCommand.Kind.MORTAR.name(), "2: Mortar"),
-                new GameHUD.TowerOption(BuyTowerCommand.Kind.CAESAR_SHIELD.name(), "3: Caesar Shield")
-            ),
-            id -> {
-                if (id == null) cancelPlacement();
-                else onTowerButton(BuyTowerCommand.Kind.valueOf(id));
-            },
-            new TowerSidebar.ActionsListener() {
-                @Override public void onMove(Tower tower) {
-                    if (tower == null || !towers.contains(tower)) return;
-                    movingTower = tower;
-                    movingOriginalPosition.set(tower.getPosition());
-                    previewTower = tower;
-                    selectedTower = null;
-                    tower.setSelected(false);
-                    hud.clearSelection();
-                    setState(new PlacementState(tower));
-                }
-                @Override public void onSell(Tower tower) {
-                    if (tower == null) return;
-                    towers.remove(tower);
-                    if (selectedTower == tower) selectedTower = null;
-                    hud.clearSelection();
-                }
-                @Override public void onUpgrade(Tower tower, String element) {
-                    // Upgrade controls are available; upgrade economy is not implemented in Gerald yet.
-                }
-                @Override public void onPriorityChanged(Tower tower) { }
-            }
-        );
+    new FitViewport(WORLD_WIDTH, WORLD_HEIGHT),
+    Arrays.asList(
+        new GameHUD.TowerOption(BuyTowerCommand.Kind.CANNON.name(), "1: Cannon"),
+        new GameHUD.TowerOption(BuyTowerCommand.Kind.MORTAR.name(), "2: Mortar"),
+        new GameHUD.TowerOption(BuyTowerCommand.Kind.CAESAR_SHIELD.name(), "3: Caesar\nShield")
+    ),
+    id -> {
+        if (id == null) {
+            cancelPlacement();
+        } else {
+            onTowerButton(BuyTowerCommand.Kind.valueOf(id));
+        }
+    },
+    new TowerSidebar.ActionsListener() {
+        @Override public void onMove(Tower tower) {
+            if (tower == null || !towers.contains(tower)) return;
+            movingTower = tower;
+            movingOriginalPosition.set(tower.getPosition());
+            previewTower = tower;
+            selectedTower = null;
+            tower.setSelected(false);
+            hud.clearSelection();
+            setState(new PlacementState(tower));
+        }
+
+        @Override public void onSell(Tower tower) {
+            if (tower == null) return;
+            towers.remove(tower);
+            if (selectedTower == tower) selectedTower = null;
+            hud.clearSelection();
+        }
+
+        @Override public void onUpgrade(Tower tower, String element) {
+            // Upgrade controls are available; upgrade economy is not implemented in Gerald yet.
+        }
+
+        @Override public void onPriorityChanged(Tower tower) { }
+    }
+);
+      
         hud.onBaseHpChanged(baseHp, MAX_BASE_HP);
         hud.onDennyChanged(denny);
 
