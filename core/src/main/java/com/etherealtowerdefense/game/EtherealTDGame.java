@@ -330,7 +330,7 @@ public class EtherealTDGame extends ApplicationAdapter {
         @Override public void onPriorityChanged(Tower tower) { }
     }
 );
-      
+
         hud.onBaseHpChanged(baseHp, MAX_BASE_HP);
         hud.onDennyChanged(denny);
 

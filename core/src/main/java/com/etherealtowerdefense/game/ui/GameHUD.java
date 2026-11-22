@@ -26,26 +26,10 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.etherealtowerdefense.game.entities.Tower;
-import com.etherealtowerdefense.game.factories.FontFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * HUD saat bermain (tanpa file skin/asset tambahan):
- *  - kiri atas  : HP base (label + bar yang berubah warna)
- *  - kanan atas : jumlah gold (ikon koin + angka)
- *  - bawah      : menu untuk memilih tower yang tersedia
- *  - popup      : angka "+gold" yang naik dan memudar di posisi musuh yang mati
- *
- * Pemakaian (lihat EtherealTDGame):
- *   hud = new GameHUD(new StretchViewport(1280, 900), -180f, options, id -> ...);  // id == null = batal pilih
- *   Koordinat HUD = koordinat dunia game (peta y 0..720, Tower Rack y -180..0), jadi worldMinY = -RACK_HEIGHT.
- *   Gdx.input.setInputProcessor(new InputMultiplexer(hud.getStage(), gameInput));
- *   hud.onBaseHpChanged(hp, maxHp);
- *   render(): gambar game dulu, lalu hud.render(delta);
- *   resize(): hud.resize(w, h);   dispose(): hud.dispose();
- */
 public class GameHUD implements Disposable {
     public static class TowerOption {
         public final String id;
@@ -90,6 +74,7 @@ public class GameHUD implements Disposable {
 
     public GameHUD(Viewport viewport, List<TowerOption> options,
                    TowerSelectListener listener, TowerSidebar.ActionsListener sidebarListener) {
+        this.worldMinY = -RACK_HEIGHT;
         this.options = new ArrayList<>(options);
         this.listener = listener;
         stage = new Stage(viewport);
@@ -177,7 +162,12 @@ public class GameHUD implements Disposable {
         topArea.add().grow();
 
         Table root = new Table();
-        root.setFillParent(true);
+        root.setBounds(
+            0f,
+            worldMinY,
+            viewport.getWorldWidth(),
+            viewport.getWorldHeight()
+        );
 
         root.add(topArea).width(1280f).growY();
         root.add().width(320f).growY();
@@ -228,6 +218,17 @@ public class GameHUD implements Disposable {
     public Stage getStage() { return stage; }
     public void render(float delta) { stage.getViewport().apply(); stage.act(delta); stage.draw(); }
     public void resize(int width, int height) { stage.getViewport().update(width, height, true); }
+    private void updateCamera() {
+        Viewport viewport = stage.getViewport();
+
+        viewport.getCamera().position.set(
+            viewport.getWorldWidth() / 2f,
+            worldMinY + viewport.getWorldHeight() / 2f,
+            0f
+        );
+
+        viewport.getCamera().update();
+    }
 
     @Override public void dispose() {
         stage.dispose();
