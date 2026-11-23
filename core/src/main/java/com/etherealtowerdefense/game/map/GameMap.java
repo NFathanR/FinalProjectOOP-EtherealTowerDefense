@@ -14,18 +14,15 @@ public class GameMap {
     private final int[][] tiles = new int[HEIGHT][WIDTH];
     private final List<Vector2> waypoints = new ArrayList<>();
 
-    public GameMap() {
-        addWaypoint(0, 8); addWaypoint(10, 8); addWaypoint(10, 12);
-        addWaypoint(22, 12); addWaypoint(22, 7); addWaypoint(16, 7);
-        addWaypoint(16, 4); addWaypoint(26, 4); addWaypoint(26, 7);
-        addWaypoint(31, 7);
-        for (int i = 0; i < waypoints.size() - 1; i++) markSegment(waypoints.get(i), waypoints.get(i + 1));
+    public GameMap(MapData mapData) {
+        //sen ngambil waypoint map 1 atau 2
+        waypoints.addAll(mapData.getWaypoints());
+
+        for (int i=0; i < waypoints.size()-1; i++) {
+            markSegment(waypoints.get(i), waypoints.get(i + 1));
+        }
     }
 
-    private void addWaypoint(int tileX, int tileY) {
-        waypoints.add(new Vector2(tileX * TILE_SIZE + TILE_SIZE / 2f,
-                WORLD_HEIGHT - (tileY * TILE_SIZE + TILE_SIZE / 2f)));
-    }
     private void markSegment(Vector2 a, Vector2 b) {
         int steps = Math.max(1, (int)(a.dst(b) / 5f));
         for (int i = 0; i <= steps; i++) {

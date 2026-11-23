@@ -22,6 +22,8 @@ import com.etherealtowerdefense.game.commands.*;
 import com.etherealtowerdefense.game.entities.*;
 import com.etherealtowerdefense.game.factories.*;
 import com.etherealtowerdefense.game.map.GameMap;
+import com.etherealtowerdefense.game.map.Map1;
+import com.etherealtowerdefense.game.map.Map2;
 import com.etherealtowerdefense.game.observers.*;
 import com.etherealtowerdefense.game.pools.*;
 import com.etherealtowerdefense.game.effects.SplashIndicatorManager;
@@ -29,6 +31,8 @@ import com.etherealtowerdefense.game.states.*;
 import com.etherealtowerdefense.game.ui.GameHUD;
 import com.etherealtowerdefense.game.ui.TowerSidebar;
 import com.etherealtowerdefense.game.ui.MainMenu;
+import com.etherealtowerdefense.game.ui.MapSelectionMenu;
+
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -86,7 +90,9 @@ public class EtherealTDGame extends ApplicationAdapter {
 
     // menu
     private MainMenu menu;
+    private MapSelectionMenu mapSelectionMenu; //seleksi menu -SEN
     private boolean inMenu = true;
+    private boolean inMapSelection = false;
     private InputAdapter gameInput;
 
     // hud
@@ -104,7 +110,7 @@ public class EtherealTDGame extends ApplicationAdapter {
         shapes = new ShapeRenderer();
         rackFont = FontFactory.get(22);
         waveFont = FontFactory.get(30);
-        map = new GameMap();
+        map = new GameMap(new Map2()); //map 1 as default SEN
 
         // Keep Gerald's 1280px playfield intact; reserve 320px on the right for the sidebar.
         worldCamera = new OrthographicCamera();
@@ -349,18 +355,53 @@ public class EtherealTDGame extends ApplicationAdapter {
                 Gdx.app.log("WaveManager", "Started wave " + waveManager.getWave());
             }
         });
+        // Membuat menu pemilihan map -SEN
+        mapSelectionMenu = new MapSelectionMenu(
+            mapId -> {
+                selectMap(mapId);
+
+                // Menutup Map Selection dan masuk gameplay -SEN
+                inMapSelection = false;
+                inMenu = false;
+                waveManager.start();// Memulai sistem wave -SEN
+
+                // Mengaktifkan HUD dan input gameplay -SEM
+                hud.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+                Gdx.input.setInputProcessor(new InputMultiplexer(hud.getStage(), gameInput));
+            },
+
+            () -> {
+                // Kembali ke Main Menu (SEN)
+                inMapSelection = false;
+                inMenu = true;
+                Gdx.input.setInputProcessor(menu.getStage());
+            }
+        );
+
+
         menu = new MainMenu(() -> {
+            // Membuka Map Selection setelah menekan PLAY (SEN)
             inMenu = false;
-            waveManager.start();
-            Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-            hud.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-            Gdx.input.setInputProcessor(new InputMultiplexer(hud.getStage(), gameInput));
+            inMapSelection = true;
+
+            // Mengalihkan input mouse ke menu pemilihan map (SEN)
+            mapSelectionMenu.getStage().getViewport().update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+            Gdx.input.setInputProcessor(mapSelectionMenu.getStage());
         });
         Gdx.input.setInputProcessor(menu.getStage());
     }
 
-    // tower selector
+    // Pilih MAp
+    private void selectMap(int mapId) {
 
+        // Membuat map berdasarkan pilihan -SEN
+        map = new GameMap(mapId == 2 ? new Map2() : new Map1());
+
+        // Memperbarui rute yang digunakan musuh tergantung dari map yg dipilih -SEN
+        enemyFactory = new EnemyFactory(blastCrawlerTexture, alpecaTexture, faunTexture, hoplitaiTexture, freddyTexture, girtablulluTexture, map.getWaypoints());
+    }
+
+    // tower selector
     private void selectTower(BuyTowerCommand.Kind kind) {
         if (selectedTower != null) selectedTower.setSelected(false);
         selectedTower = null;
@@ -467,19 +508,10 @@ public class EtherealTDGame extends ApplicationAdapter {
     }
 
     private void updateMouse(int sx, int sy) {
+        //ubah koordinat layar ke world (sen)
         Vector3 world = new Vector3(sx, sy, 0f);
         worldViewport.unproject(world);
-        mouseWorld.set(world.x, world.y);
-
-        mouseWorld.set(sx, Gdx.graphics.getHeight() - sy);
-
-
-        // Menyesuaikan posisi mouse dengan ukuran area game (Sen)
-        mouseWorld.scl(GameMap.WORLD_WIDTH / Gdx.graphics.getWidth(), (GameMap.WORLD_HEIGHT + RACK_HEIGHT) / Gdx.graphics.getHeight());
-
-        // Mengurangi offset agar posisi mouse sesuai dengan map (Sen)
-        mouseWorld.y -= RACK_HEIGHT;
-
+        mouseWorld.set(world.x, world.y); //menyimpan posisi mouse dalam koordinat gane SEN
         updatePlacementValidity();
     }
 
@@ -514,6 +546,15 @@ public class EtherealTDGame extends ApplicationAdapter {
 
         if (inMenu) {
             menu.render(Gdx.graphics.getDeltaTime());
+            return;
+        }
+
+        // Menampilkan layar pemilihan map -SEN
+        if (inMapSelection) {
+            ScreenUtils.clear(0.12f, 0.17f, 0.14f, 1f);
+            float delta = Gdx.graphics.getDeltaTime();
+            mapSelectionMenu.getStage().act(delta);
+            mapSelectionMenu.getStage().draw();
             return;
         }
 
@@ -817,6 +858,7 @@ public class EtherealTDGame extends ApplicationAdapter {
         }
         if (hud != null) hud.resize(width, height);
         if (menu != null) menu.resize(width, height);
+        if (mapSelectionMenu != null) mapSelectionMenu.resize(width, height); //Menyesuaikan ukuran map selection by -SEN
     }
 
     @Override
@@ -824,6 +866,10 @@ public class EtherealTDGame extends ApplicationAdapter {
 
         menu.dispose();
         hud.dispose();
+
+        if (mapSelectionMenu != null) {
+            mapSelectionMenu.dispose();
+        }
 
         batch.dispose();
         shapes.dispose();
