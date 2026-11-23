@@ -50,6 +50,9 @@ public class GameHUD implements Disposable {
     private static final float SLOT_PITCH = 178f;
     private static final float SLOT_LEFT = 26f;
     private static final float SLOT_BOTTOM = 20f;
+    private static final float START_BUTTON_WIDTH = 220f;
+    private static final float START_BUTTON_HEIGHT = 42f;
+    private static final float TOP_MARGIN = 12f;
 
     private final Stage stage;
     private final float worldMinY;
@@ -71,6 +74,7 @@ public class GameHUD implements Disposable {
     private final TowerSelectListener listener;
     private final TowerSidebar towerSidebar;
     private String selectedId;
+    private TextButton startWaveButton;
 
     public GameHUD(Viewport viewport, List<TowerOption> options,
                    TowerSelectListener listener, TowerSidebar.ActionsListener sidebarListener) {
@@ -201,7 +205,7 @@ public class GameHUD implements Disposable {
         popup.add(new Image(denny)).size(20f);
         popup.add(new Label("+" + amount, dennyStyle)).padLeft(4f);
         popup.pack();
-        popup.setPosition(worldX - popup.getWidth()/2f, worldY + 180f);
+        popup.setPosition(worldX - popup.getWidth()/2f, worldY);
         popup.addAction(Actions.sequence(
             Actions.parallel(
                 Actions.moveBy(0f, 48f, .9f, Interpolation.pow2Out),
@@ -215,9 +219,41 @@ public class GameHUD implements Disposable {
     public void clearSelection() { setSelectedTower(null); towerSidebar.hide(); }
     public void showTowerSidebar(Tower tower) { towerSidebar.show(tower); }
     public String getSelectedTowerId() { return selectedId; }
+
+    /** Adds the manual wave-start control. Boss testing is done with keyboard L. */
+    public void setWaveControls(Runnable startWave) {
+        TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
+        style.font = font;
+        style.fontColor = Color.WHITE;
+        style.up = bordered(new Color(.18f, .48f, .25f, 1f), new Color(.72f, .88f, .74f, 1f));
+        style.down = bordered(new Color(.12f, .34f, .18f, 1f), Color.WHITE);
+        style.disabled = bordered(new Color(.28f, .28f, .28f, 1f), Color.GRAY);
+
+        Table controls = new Table();
+        startWaveButton = new TextButton("Start Next Wave", style);
+        startWaveButton.addListener(new ChangeListener() {
+            @Override public void changed(ChangeEvent event, Actor actor) {
+                if (startWave != null) startWave.run();
+            }
+        });
+        controls.add(startWaveButton).width(START_BUTTON_WIDTH).height(START_BUTTON_HEIGHT);
+        // Beri ukuran eksplisit supaya tombol tidak "melayang" di titik tengah tabel berukuran 0.
+        controls.setSize(START_BUTTON_WIDTH, START_BUTTON_HEIGHT);
+        // Tepi atas layar HUD = worldMinY + worldHeight (bukan 0), jadi tombol menempel di atas.
+        float screenTop = worldMinY + stage.getViewport().getWorldHeight();
+        controls.setPosition((stage.getViewport().getWorldWidth() - START_BUTTON_WIDTH) / 2f,
+            screenTop - TOP_MARGIN - START_BUTTON_HEIGHT);
+        stage.addActor(controls);
+    }
+
     public Stage getStage() { return stage; }
     public void render(float delta) { stage.getViewport().apply(); stage.act(delta); stage.draw(); }
-    public void resize(int width, int height) { stage.getViewport().update(width, height, true); }
+    public void resize(int width, int height) {
+        // centerCamera=false: kalau true, kamera di-reset ke (w/2, h/2) sehingga seluruh HUD
+        // (HP, Start Wave, Denny, rack tower) bergeser turun sebesar RACK_HEIGHT.
+        stage.getViewport().update(width, height, false);
+        updateCamera();
+    }
     private void updateCamera() {
         Viewport viewport = stage.getViewport();
 
