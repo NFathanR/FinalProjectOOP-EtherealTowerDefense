@@ -8,18 +8,19 @@ import com.etherealtowerdefense.game.entities.enemyType.common.BlastCrawler;
 import com.etherealtowerdefense.game.entities.enemyType.common.Faun;
 import com.etherealtowerdefense.game.entities.enemyType.common.Hoplitai;
 import com.etherealtowerdefense.game.entities.enemyType.elite.FreddyFazbear;
+import com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu;
 
 import java.util.List;
 
-/** Creates concrete enemy classes; each enemy type owns its own class and stats. */
 public class EnemyFactory {
-    public enum Type { BLAST_CRAWLER, ALPECA, FAUN, HOPLITAI, FREDDY_FAZBEAR }
+    public enum Type { BLAST_CRAWLER, ALPECA, FAUN, HOPLITAI, FREDDY_FAZBEAR, GIRTABLULLU }
 
     private final Texture blastCrawlerTexture;
     private final Texture alpecaTexture;
     private final Texture faunTexture;
     private final Texture hoplitaiTexture;
     private final Texture freddyTexture;
+    private final Texture girtablulluTexture;
     private final List<Vector2> path;
 
     public EnemyFactory(
@@ -28,6 +29,7 @@ public class EnemyFactory {
         Texture faunTexture,
         Texture hoplitaiTexture,
         Texture freddyTexture,
+        Texture girtablulluTexture,
         List<Vector2> path
     ) {
         this.blastCrawlerTexture = blastCrawlerTexture;
@@ -35,6 +37,7 @@ public class EnemyFactory {
         this.faunTexture = faunTexture;
         this.hoplitaiTexture = hoplitaiTexture;
         this.freddyTexture = freddyTexture;
+        this.girtablulluTexture = girtablulluTexture;
         this.path = path;
     }
 
@@ -46,6 +49,7 @@ public class EnemyFactory {
             case FAUN: return new Faun(faunTexture, path);
             case HOPLITAI: return new Hoplitai(hoplitaiTexture, path);
             case FREDDY_FAZBEAR: return new FreddyFazbear(freddyTexture, path);
+            case GIRTABLULLU: return new Girtablullu(girtablulluTexture, path);
             case BLAST_CRAWLER:
             default: return new BlastCrawler(blastCrawlerTexture, path);
         }
