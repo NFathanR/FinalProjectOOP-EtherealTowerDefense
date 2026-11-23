@@ -451,6 +451,16 @@ public class EtherealTDGame extends ApplicationAdapter {
         Vector3 world = new Vector3(sx, sy, 0f);
         worldViewport.unproject(world);
         mouseWorld.set(world.x, world.y);
+
+        mouseWorld.set(sx, Gdx.graphics.getHeight() - sy);
+
+
+        // Menyesuaikan posisi mouse dengan ukuran area game (Sen)
+        mouseWorld.scl(GameMap.WORLD_WIDTH / Gdx.graphics.getWidth(), (GameMap.WORLD_HEIGHT + RACK_HEIGHT) / Gdx.graphics.getHeight());
+
+        // Mengurangi offset agar posisi mouse sesuai dengan map (Sen)
+        mouseWorld.y -= RACK_HEIGHT;
+
         updatePlacementValidity();
     }
 
@@ -463,21 +473,14 @@ public class EtherealTDGame extends ApplicationAdapter {
 
         float r = previewTower.getCollisionRadius();
 
-        placementValid =
-            mouseWorld.x >= r
-                && mouseWorld.y >= r
-                && mouseWorld.x <= GameMap.WORLD_WIDTH - r
-                && mouseWorld.y <= GameMap.WORLD_HEIGHT - r
-                && !map.intersectsPath(mouseWorld.x, mouseWorld.y, r);
+        placementValid = mouseWorld.x >= r && mouseWorld.y >= r && mouseWorld.x <= GameMap.WORLD_WIDTH - r && mouseWorld.y <= GameMap.WORLD_HEIGHT - r && !map.intersectsPath(mouseWorld.x, mouseWorld.y, r);
 
         if (placementValid) {
 
             for (Tower t : towers) {
                 if (t == movingTower) continue;
 
-                if (t.getPosition().dst(mouseWorld)
-                    < r + t.getCollisionRadius()) {
-
+                if (t.getPosition().dst(mouseWorld) < r + t.getCollisionRadius()) {
                     placementValid = false;
                     break;
                 }
@@ -502,8 +505,7 @@ public class EtherealTDGame extends ApplicationAdapter {
 
         ScreenUtils.clear(0.12f, 0.17f, 0.14f, 1);
 
-        if (state instanceof PlayingState
-            || state instanceof PlacementState) {
+        if (state instanceof PlayingState || state instanceof PlacementState) {
 
             for (Tower t : towers) {
                 t.setStunned(false);
@@ -529,22 +531,31 @@ public class EtherealTDGame extends ApplicationAdapter {
         drawMap();
 
         // Menggambar background tower rack di bawah map (sen)
+
+        // Menggambar panel dan tiga slot Tower Rack semua sen
         shapes.begin(ShapeRenderer.ShapeType.Filled);
+
+        // Background panel bawah
         shapes.setColor(0.34f, 0.37f, 0.42f, 1f);
         shapes.rect(0, -RACK_HEIGHT, WORLD_WIDTH, RACK_HEIGHT);
 
-
-        // Three available tower slots, centered within the 1280px gameplay area.
+        // Tiga slot tower
         int rackStartX = Math.round((WORLD_WIDTH - (3 * 160 + 2 * 18)) / 2f);
+
         for (int i = 0; i < 3; i++) {
             int x = rackStartX + i * 178;
+
+            // Outline slot
             shapes.setColor(0.78f, 0.81f, 0.86f, 1f);
             shapes.rect(x, -160, 160, 140);
+
+            // Bagian dalam slot
             shapes.setColor(0.48f, 0.52f, 0.58f, 1f);
             shapes.rect(x + 4, -156, 152, 132);
         }
 
         shapes.end();
+
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
         drawSelectedTowerRange();
@@ -642,30 +653,32 @@ public class EtherealTDGame extends ApplicationAdapter {
                     shapes.setColor(0.20f, 0.43f, 0.25f, 1);
                 }
 
-                shapes.rect(
-                    x * 40,
-                    (17 - y) * 40,
-                    40,
-                    40
-                );
+                shapes.rect(x * 40, (17 - y) * 40, 40, 40);
             }
         }
 
         shapes.end();
-
+        //gambar outline pathnya SEN
         shapes.begin(ShapeRenderer.ShapeType.Line);
+        shapes.setColor(0.35f, 0.22f, 0.12f, 1f);
 
-        shapes.setColor(0.12f, 0.29f, 0.17f, 0.35f);
+        for (int  y = 0; y < GameMap.HEIGHT; y++) {
+            for (int x = 0; x < GameMap.WIDTH; x++) {
+                if(map. getTile(x, y) != 1)  {
+                    continue;
+                }
 
-        for (int x = 0; x <= 32; x++) {
-            shapes.line(x * 40, 0, x * 40, 720);
+                float px = x * GameMap.TILE_SIZE;
+                float py = (GameMap.HEIGHT - 1 - y) * GameMap.TILE_SIZE;
+                float size = GameMap.TILE_SIZE;
+
+                if(map.getTile(x, y - 1) != 1) {
+                    shapes.line(px, py + size, px +size, py + size);
+                }
+            }
         }
-
-        for (int y = 0; y <= 18; y++) {
-            shapes.line(0, y * 40, 1280, y * 40);
-        }
-
         shapes.end();
+
     }
 
     private void drawEnemyEffects() {
