@@ -12,6 +12,8 @@ public class TowerFactory {
     private final ProjectilePool projectiles;
     private final Texture cannon;
     private final Texture cannonball;
+    private final Texture cannonRotor;
+    private final Texture rotorBullet;
     private final Texture mortar;
     private final Texture mortarRound;
     private final Texture caesarShield;
@@ -21,6 +23,8 @@ public class TowerFactory {
         ProjectilePool p,
         Texture c,
         Texture cb,
+        Texture cr,
+        Texture rb,
         Texture m,
         Texture mr,
         Texture cs,
@@ -29,6 +33,8 @@ public class TowerFactory {
         projectiles = p;
         cannon = c;
         cannonball = cb;
+        cannonRotor = cr;
+        rotorBullet = rb;
         mortar = m;
         mortarRound = mr;
         caesarShield = cs;
@@ -36,9 +42,22 @@ public class TowerFactory {
     }
 
     public Tower createCannon() {
-        Tower tower = new Tower(cannon, 250, 325, 90, 150,
+        Tower tower = new Tower(cannon, 250, 325, 90, 200f,
             new CannonStrategy(projectiles, cannonball));
         tower.setDisplayInfo("Cannon", "Physical", "Long-range artillery");
+        return tower;
+    }
+
+    public Tower createCannonRotor() {
+        Tower tower = new Tower(cannonRotor, 250, 325, 90, 170f,
+            new CannonRotorStrategy(projectiles, rotorBullet));
+        tower.setDisplayInfo("Cannon Rotor", "Physical", "Double-barrel burst artillery");
+        tower.setSidebarStats(
+            new Tower.StatLine("ATK", () -> "37.1"),
+            new Tower.StatLine("DPS", () -> "78"),
+            new Tower.StatLine("ATK Speed", () -> "1.6s"),
+            new Tower.StatLine("Range", () -> "115.5")
+        );
         return tower;
     }
 

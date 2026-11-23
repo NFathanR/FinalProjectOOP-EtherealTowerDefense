@@ -60,12 +60,6 @@ public class Tower {
         updateSelectionAnimation(delta);
         if (stunned) return;
 
-        if (strategy.usesCustomUpdate()) {
-            strategy.update(this, enemies, delta);
-            return;
-        }
-        cooldown -= delta;
-
         if (recoilElapsed >= 0f) {
             recoilElapsed += delta;
 
@@ -73,6 +67,12 @@ public class Tower {
                 recoilElapsed = -1f;
             }
         }
+
+        if (strategy.usesCustomUpdate()) {
+            strategy.update(this, enemies, delta);
+            return;
+        }
+        cooldown -= delta;
 
         Enemy target = findTarget(enemies);
         if (target == null) return;

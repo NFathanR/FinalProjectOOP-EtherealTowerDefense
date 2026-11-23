@@ -7,6 +7,7 @@ public class BuyTowerCommand implements GameCommand {
 
     public enum Kind {
         CANNON,
+        CANNON_ROTOR,
         MORTAR,
         CAESAR_SHIELD
     }
@@ -31,6 +32,9 @@ public class BuyTowerCommand implements GameCommand {
         switch (kind) {
             case CANNON:
                 tower = factory.createCannon();
+                break;
+            case CANNON_ROTOR:
+                tower = factory.createCannonRotor();
                 break;
             case MORTAR:
                 tower = factory.createMortar();

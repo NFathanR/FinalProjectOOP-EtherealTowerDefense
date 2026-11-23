@@ -54,9 +54,11 @@ public class EtherealTDGame extends ApplicationAdapter {
     private BitmapFont waveFont;
 
     private Texture cannonTexture;
+    private Texture cannonRotorTexture;
     private Texture mortarTexture;
     private Texture caesarShieldTexture;
     private Texture cannonballTexture;
+    private Texture rotorBulletTexture;
     private Texture mortarRoundTexture;
     private Texture blastCrawlerTexture;
     private Texture alpecaTexture;
@@ -123,10 +125,12 @@ public class EtherealTDGame extends ApplicationAdapter {
 
 
         cannonTexture = new Texture("towers/cannon.png");
+        cannonRotorTexture = new Texture("towers/cannonrotor.png");
         mortarTexture = new Texture("towers/mortar.png");
         caesarShieldTexture = new Texture("towers/caesarshield.png");
 
         cannonballTexture = new Texture("projectiles/cannonball.png");
+        rotorBulletTexture = new Texture("projectiles/rotor_bullet.png");
         mortarRoundTexture = new Texture("projectiles/mortar_round.png");
 
         blastCrawlerTexture = new Texture("enemies/BlastCrawler.png");
@@ -144,6 +148,8 @@ public class EtherealTDGame extends ApplicationAdapter {
             projectilePool,
             cannonTexture,
             cannonballTexture,
+            cannonRotorTexture,
+            rotorBulletTexture,
             mortarTexture,
             mortarRoundTexture,
             caesarShieldTexture,
@@ -196,6 +202,11 @@ public class EtherealTDGame extends ApplicationAdapter {
 
                 if (keycode == Input.Keys.NUM_3) {
                     onTowerButton(BuyTowerCommand.Kind.CAESAR_SHIELD);
+                    return true;
+                }
+
+                if (keycode == Input.Keys.NUM_4) {
+                    onTowerButton(BuyTowerCommand.Kind.CANNON_ROTOR);
                     return true;
                 }
 
@@ -312,7 +323,8 @@ public class EtherealTDGame extends ApplicationAdapter {
             Arrays.asList(
                 new GameHUD.TowerOption(BuyTowerCommand.Kind.CANNON.name(), "1: Cannon"),
                 new GameHUD.TowerOption(BuyTowerCommand.Kind.MORTAR.name(), "2: Mortar"),
-                new GameHUD.TowerOption(BuyTowerCommand.Kind.CAESAR_SHIELD.name(), "3: Caesar\nShield")
+                new GameHUD.TowerOption(BuyTowerCommand.Kind.CAESAR_SHIELD.name(), "3: Caesar\nShield"),
+                new GameHUD.TowerOption(BuyTowerCommand.Kind.CANNON_ROTOR.name(), "4: Cannon\nRotor")
             ),
             id -> {
                 if (id == null) {
@@ -602,10 +614,10 @@ public class EtherealTDGame extends ApplicationAdapter {
         shapes.setColor(0.34f, 0.37f, 0.42f, 1f);
         shapes.rect(0, -RACK_HEIGHT, WORLD_WIDTH, RACK_HEIGHT);
 
-        // Tiga slot tower
-        int rackStartX = Math.round((WORLD_WIDTH - (3 * 160 + 2 * 18)) / 2f);
 
-        for (int i = 0; i < 3; i++) {
+        // Empat slot tower
+        int rackStartX = Math.round((WORLD_WIDTH - (4 * 160 + 3 * 18)) / 2f);
+        for (int i = 0; i < 4; i++) {
             int x = rackStartX + i * 178;
 
             // Outline slot
@@ -875,10 +887,12 @@ public class EtherealTDGame extends ApplicationAdapter {
         shapes.dispose();
 
         cannonTexture.dispose();
+        cannonRotorTexture.dispose();
         mortarTexture.dispose();
         caesarShieldTexture.dispose();
 
         cannonballTexture.dispose();
+        rotorBulletTexture.dispose();
         mortarRoundTexture.dispose();
 
         blastCrawlerTexture.dispose();
