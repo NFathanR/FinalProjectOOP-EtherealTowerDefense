@@ -61,6 +61,8 @@ public class TowerSidebar extends Table implements Disposable {
     private boolean confirmingSell;
     private String selectedElement = "fire";
     private boolean open;
+    /** Bawah panel = bawah rack (HUD memakai kamera dengan layar y = -180 .. 720). */
+    private static final float SIDEBAR_Y = -180f;
     private Image priorityBg;
 
     public TowerSidebar(ActionsListener listener) {
@@ -208,7 +210,7 @@ public class TowerSidebar extends Table implements Disposable {
         addActor(sellDenny);
 
         setSize(320,900);
-        setPosition(1600,0);
+        setPosition(1600,SIDEBAR_Y);
         setVisible(false);
         setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.childrenOnly);
         refresh();
@@ -287,14 +289,14 @@ public class TowerSidebar extends Table implements Disposable {
         clearActions();
         tower = selected; confirmingSell = false; upgradeMode = false; selectedElement = "fire";
         if (!open) {
-            setVisible(true); setPosition(1600,0); addAction(Actions.moveTo(1280,0,.32f)); open = true;
+            setVisible(true); setPosition(1600,SIDEBAR_Y); addAction(Actions.moveTo(1280,SIDEBAR_Y,.32f)); open = true;
         }
         refresh();
     }
     public void hide() {
         clearActions();
         tower = null; open = false;
-        addAction(Actions.sequence(Actions.moveTo(1600,0,.25f), Actions.visible(false)));
+        addAction(Actions.sequence(Actions.moveTo(1600,SIDEBAR_Y,.25f), Actions.visible(false)));
     }
     private void toggleUpgrade() {
         if (tower == null) return; upgradeMode = !upgradeMode; refresh();
