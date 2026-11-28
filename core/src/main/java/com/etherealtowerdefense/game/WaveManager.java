@@ -8,22 +8,20 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
-/** Controls the 50-wave campaign and endless waves after wave 50. */
 public class WaveManager {
     public static final int CAMPAIGN_WAVES = 50;
     private static final float BASE_SPAWN_INTERVAL = 0.9f;
     private static final float MIN_SPAWN_INTERVAL = 0.25f;
 
-    /** First wave Freddy appears; one more Freddy is added every FREDDY_COUNT_STEP waves after that. */
     private static final int FREDDY_FIRST_WAVE = 25;
+    private static final int FREDDY_SPAWN_STEP = 5;
     private static final int FREDDY_COUNT_STEP = 10;
-    /**
-     * Distance (in pixels along the path) between two Freddys spawned in the same wave.
-     * Each Freddy stuns towers inside a SECONDARY_HITBOX_RADIUS circle, so two aura circles
-     * are kept apart (2 * radius) plus a small margin.
-     */
+
     private static final float FREDDY_SPACING = 2f * FreddyFazbear.SECONDARY_HITBOX_RADIUS + 40f;
     private static final float FREDDY_SPAWN_DELAY = FREDDY_SPACING / FreddyFazbear.BASE_SPEED;
+
+    private static final int GIRTABLULLU_FIRST_WAVE = 40;
+    private static final int GIRTABLULLU_SPAWN_STEP = 10;
 
     /** An elite scheduled relative to the start of the wave (independent of the common-enemy queue). */
     private static final class ScheduledSpawn {
@@ -91,7 +89,7 @@ public class WaveManager {
         for (int i = 0; i < freddies; i++) {
             eliteSchedule.addLast(new ScheduledSpawn(EnemyFactory.Type.FREDDY_FAZBEAR, i * FREDDY_SPAWN_DELAY));
         }
-        if (wave == 40 || wave == 50) {
+        if (isGirtablulluWave(wave)) {
             eliteSchedule.addFirst(new ScheduledSpawn(EnemyFactory.Type.GIRTABLULLU, 0f));
         }
 
@@ -100,7 +98,6 @@ public class WaveManager {
         waveActive = true;
     }
 
-    /** Wave 25-34 = 1 Freddy, 35-44 = 2, 45-54 = 3, ... Only on Freddy waves (every 5th wave). */
     private int freddyCountForWave(int currentWave) {
         if (!isFreddyWave(currentWave)) return 0;
         return 1 + (currentWave - FREDDY_FIRST_WAVE) / FREDDY_COUNT_STEP;
@@ -110,14 +107,21 @@ public class WaveManager {
         // Later waves mix in stronger enemies while retaining a few early enemies.
         int tier = Math.min(3, (currentWave - 1) / 5);
         int pattern = (index + currentWave) % 10;
+
         if (tier >= 3 && pattern >= 6) return EnemyFactory.Type.HOPLITAI;
         if (tier >= 2 && pattern >= 5) return EnemyFactory.Type.FAUN;
         if (tier >= 1 && pattern >= 4) return EnemyFactory.Type.ALPECA;
         return EnemyFactory.Type.BLAST_CRAWLER;
     }
 
-    private boolean isFreddyWave(int wave) {
-        return wave == 25 || wave == 30 || wave == 35 || wave == 40 || wave == 45 || wave == 50;
+    private boolean isFreddyWave(int currentWave) {
+        return currentWave >= FREDDY_FIRST_WAVE
+            && (currentWave - FREDDY_FIRST_WAVE) % FREDDY_SPAWN_STEP == 0;
+    }
+
+    private boolean isGirtablulluWave(int currentWave) {
+        return currentWave >= GIRTABLULLU_FIRST_WAVE
+            && (currentWave - GIRTABLULLU_FIRST_WAVE) % GIRTABLULLU_SPAWN_STEP == 0;
     }
 
     private float getSpawnInterval() {

@@ -15,6 +15,7 @@ public class Girtablullu extends Enemy {
     public static final float SHIELD_DURATION = 30f;
     public static final float EXPLOSION_RADIUS = 330f;
     public static final float EXPLOSION_DAMAGE = 200f;
+    public static final int BASE_DAMAGE = 100;
     public static final int DENNY_REWARD = 2000;
 
     private float shieldHp;
@@ -25,9 +26,8 @@ public class Girtablullu extends Enemy {
     private float speedStage;
 
     public Girtablullu(Texture texture, List<Vector2> path) {
-        super(texture, path, BASE_SPEED, BASE_HP);
+        super(texture, path, BASE_SPEED, BASE_HP, BASE_DAMAGE, DENNY_REWARD);
     }
-
     @Override
     public void update(float delta) {
         if (shieldActivated && shieldTimer > 0f) {

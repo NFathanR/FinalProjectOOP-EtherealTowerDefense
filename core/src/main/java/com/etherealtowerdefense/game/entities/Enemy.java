@@ -18,6 +18,8 @@ public class Enemy {
     protected float speed, health, maxHealth, distanceTravelled, rotation, turningSpeed;
     protected boolean active;
     protected Texture texture;
+    protected int baseDamage = 1;
+    protected int dennyReward = 1;
 
     protected float hitFlashTimer;
     protected float shakeTimer;
@@ -30,6 +32,12 @@ public class Enemy {
     private static final float SHAKE_INTENSITY = 3f;
 
     public Enemy(Texture texture, List<Vector2> path, float speed, float health) {
+        this(texture, path, speed, health, 1, 1);
+    }
+
+    public Enemy(Texture texture, List<Vector2> path, float speed, float health, int baseDamage, int dennyReward) {
+        this.baseDamage = baseDamage;
+        this.dennyReward = dennyReward;
         init(texture, path, speed, health);
     }
 
@@ -195,4 +203,6 @@ public class Enemy {
     public float getDistanceTravelled() { return distanceTravelled; }
     public void deactivate() { active = false; }
     public void dispose() { }
+    public int getBaseDamage() { return baseDamage; }
+    public int getDennyReward() { return dennyReward; }
 }

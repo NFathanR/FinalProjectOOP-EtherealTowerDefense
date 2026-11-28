@@ -513,10 +513,7 @@ public class EtherealTDGame extends ApplicationAdapter {
     }
 
     private int rewardFor(Enemy e) {
-        if (e instanceof com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu) {
-            return com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu.DENNY_REWARD;
-        }
-        return Math.max(1, Math.round(e.getMaxHealth() / 10f));
+        return e.getDennyReward();
     }
 
     private void updateMouse(int sx, int sy) {
@@ -712,10 +709,8 @@ public class EtherealTDGame extends ApplicationAdapter {
                     if (e instanceof com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu
                         && ((com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu) e).hasDisappeared()) {
                         // Timer hit 0: just vanish, nothing else happens.
-                    } else if (e instanceof com.etherealtowerdefense.game.entities.enemyType.elite.Girtablullu) {
-                        baseHp = 0;
-                        hud.onBaseHpChanged(baseHp, MAX_BASE_HP);
                     } else {
+                        damageBase(e.getBaseDamage());
                         events.publish(new GameEvent(GameEvent.Type.ENEMY_ESCAPED));
                     }
                 } else {
@@ -727,17 +722,11 @@ public class EtherealTDGame extends ApplicationAdapter {
                         if (boss.wasKilledDuringShield()) {
                             bossExplosionPosition.set(e.getPosition());
                             bossExplosionTimer = 0.75f;
-                            // Apply the 200-damage blast to any other enemy in range.
+                            // Apply the 200-damage blast ONLY to other enemies in range (never to the base).
                             for (Enemy other : enemies) {
                                 if (other != e && other.isActive() && other.getPosition().dst(e.getPosition()) <= boss.EXPLOSION_RADIUS) {
                                     other.damage(boss.EXPLOSION_DAMAGE);
                                 }
-                            }
-                            // The current project has no tower HP system. The blast can damage the base if
-                            // the endpoint is within the radius; 200 damage is lethal to its 100 HP.
-                            Vector2 basePosition = map.getWaypoints().get(map.getWaypoints().size() - 1);
-                            if (basePosition.dst(e.getPosition()) <= boss.EXPLOSION_RADIUS) {
-                                damageBase((int)boss.EXPLOSION_DAMAGE);
                             }
                         }
                     }

@@ -13,9 +13,11 @@ public class FreddyFazbear extends Enemy {
     public static final float BASE_SPEED = 38f;
     public static final float SECONDARY_HITBOX_RADIUS = 180f;
     private static final Color HITBOX_COLOR = new Color(0.12f, 0.55f, 1f, 0.95f);
+    public static final int BASE_DAMAGE = 100;
+    public static final int DENNY_REWARD = 500;
 
     public FreddyFazbear(Texture texture, List<Vector2> path) {
-        super(texture, path, BASE_SPEED, BASE_HP);
+        super(texture, path, BASE_SPEED, BASE_HP, BASE_DAMAGE, DENNY_REWARD);
     }
 
     @Override
